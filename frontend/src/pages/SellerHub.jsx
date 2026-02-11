@@ -66,6 +66,7 @@ export default function SellerHub() {
   // Fetch current tab data when page changes
   useEffect(() => {
     fetchCurrentTabData(currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, activeTab]);
 
   const fetchCurrentTabData = (page) => {
