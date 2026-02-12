@@ -221,8 +221,9 @@ export const PRODUCT_INFO_CONFIG = {
     commonFields: ['price', 'discountedPrice', 'minOrderQty', 'maxOrderQty', 'gst', 'hsn'],
   },
   restaurant: {
-    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Volume', 'Custom Size'],
-    defaultSize: 'Length',
+    sizeOptions: [], // Restaurant should not show size selection
+    defaultSize: null,
+    hideSizeSelection: true,
     hasColorPicker: true,
     hasProductId: true,
     commonFields: ['price', 'discountedPrice', 'minOrderQty', 'maxOrderQty', 'gst', 'hsn'],
@@ -235,7 +236,7 @@ export const PRODUCT_INFO_CONFIG = {
     commonFields: ['price', 'discountedPrice', 'minOrderQty', 'maxOrderQty', 'gst', 'hsn'],
   },
   lifestyle: {
-    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Volume', 'Custom Size'],
+    sizeOptions: ['Shoes', 'Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Volume', 'Custom Size'],
     defaultSize: 'Length',
     hasColorPicker: true,
     hasProductId: true,
@@ -282,6 +283,22 @@ export const TECH_INFO_CONFIG = {
   eeVoucher: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'EntertainmentFeature' },
   airlineVoucher: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'SampleAirlineFeature' },
 };
+
+/**
+ * Date requirements for Manufacturing and Expiry dates per category
+ */
+export const DATE_REQUIREMENTS = {
+  electronics: { manufacturing: 'mandatory', expiry: 'optional' },
+  fmcg: { manufacturing: 'mandatory', expiry: 'mandatory' },
+  officesupply: { manufacturing: 'optional', expiry: 'optional' },
+  mobility: { manufacturing: 'optional', expiry: 'optional' },
+  restaurant: { manufacturing: 'optional', expiry: 'optional' },
+  others: { manufacturing: 'mandatory', expiry: 'optional' },
+};
+
+export function getDateRequirements(category) {
+  return DATE_REQUIREMENTS[category] || { manufacturing: 'optional', expiry: 'optional' };
+}
 
 /**
  * Voucher step path names (different from product)

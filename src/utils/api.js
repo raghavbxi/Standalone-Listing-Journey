@@ -93,8 +93,53 @@ export const productApi = {
   productMutation: (data) =>
     api.post('product/product_mutation', data),
 
+  /** Go Live: multipart FormData upload (images, sizechart, listperiod) */
+  productMutationFormData: (formData, onUploadProgress) => {
+    const config = { onUploadProgress };
+    return api.post('product/product_mutation', formData, config);
+  },
+
   relistProduct: (data) =>
     api.post('product/delist_relist_live_products', data),
+};
+
+// Key feature API (for feature icons on preview)
+export const keyFeatureApi = {
+  getByName: (name) =>
+    api.post('keyfeature/get_KeyFeatures_ByName', { KeyFeature: name }),
+};
+
+// Media-specific APIs
+export const mediaApi = {
+  // Multiplex Excel processing
+  uploadMultiplexExcel: (formData) =>
+    api.post('product/MultiplexScreen_Excel_Process', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  
+  // Get multiplex screens by ID
+  getMultiplexScreensById: (id) =>
+    api.get(`product/MultiplexScreenGetById/${id}`),
+  
+  // Media Online features
+  getMediaOnlineFeatures: () =>
+    api.get('mediaonlinesinfeature/Get_media_onlinesinglefea'),
+  
+  // Media Offline features
+  getMediaOfflineFeatures: () =>
+    api.get('mediaofflinesinfeature/Get_media_offlinesinglefea'),
+  
+  // Hoarding-specific APIs
+  uploadHoardingExcel: (formData) =>
+    api.post('product/Hoarding_Excel_Process', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  
+  getHoardingListById: (id) =>
+    api.get(`product/HoardingListGetById/${id}`),
+  
+  updateHoardingProduct: (data) =>
+    api.post('product/product_mutation_hoardings', data),
 };
 
 // Company APIs

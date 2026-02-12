@@ -18,6 +18,23 @@ import MediaOnlinePhysical from './pages/MediaOnlinePhysical';
 import { AuthGuard } from './components/AuthGuard';
 import ListingAccessGuard from './components/guards/ListingAccessGuard';
 
+// Media Online Components
+import MediaOnlineGeneralInfo from './pages/MediaOnline/MediaGeneralInfo';
+import MediaMultiplexProductInfo from './pages/MediaOnline/MediaMultiplexProductInfo';
+import MediaMultiplexTechInfo from './pages/MediaOnline/MediaMultiplexTechInfo';
+
+// Media Offline Components
+import MediaOfflineGeneralInfo from './pages/MediaOffline/GeneralInformation';
+import HoardingProductInfo from './pages/MediaOffline/HoardingProductInfo';
+import HoardingTechInfo from './pages/MediaOffline/HoardingTechInfo';
+import HoardingsGoLive from './pages/MediaOffline/HoardingsGoLive';
+
+// Voucher Components
+import HotelsProductInfo from './pages/Vouchers/HotelsProductInfo';
+import VoucherTechInfo from './pages/Vouchers/VoucherTechInfo';
+import VoucherDesign from './pages/Vouchers/VoucherDesign';
+import VoucherGoLive from './pages/Vouchers/VoucherGoLive';
+
 // Product Categories
 const productCategories = [
   'textile', 'electronics', 'fmcg', 'officesupply', 
@@ -78,8 +95,8 @@ function App() {
               }
             />
             
-            {/* Add Product Routes - All Categories */}
-            {productCategories.map((category) => (
+            {/* Add Product Routes - Non-Media Categories */}
+            {productCategories.filter(cat => !['mediaonline', 'mediaoffline'].includes(cat)).map((category) => (
               <React.Fragment key={category}>
                 {/* General Info */}
                 <Route 
@@ -155,15 +172,116 @@ function App() {
               </React.Fragment>
             ))}
 
-            {/* Media-specific routes (multiplex, digital screens, hoarding – per spec 7.2) */}
-            <Route path="/mediaonline/mediaonlinemultiplexproductinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><ProductInfo category="mediaonline" /></ListingAccessGuard>} />
-            <Route path="/mediaonline/mediamultiplextechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><TechInfo category="mediaonline" /></ListingAccessGuard>} />
+            {/* Media Online Routes - Specialized Components */}
+            <Route 
+              path="/mediaonline" 
+              element={
+                <ListingAccessGuard kind="product" category="mediaonline">
+                  <MediaOnlineGeneralInfo />
+                </ListingAccessGuard>
+              } 
+            />
+            <Route 
+              path="/mediaonline/general-info" 
+              element={
+                <ListingAccessGuard kind="product" category="mediaonline">
+                  <MediaOnlineGeneralInfo />
+                </ListingAccessGuard>
+              } 
+            />
+            <Route 
+              path="/mediaonline/general-info/:id" 
+              element={
+                <ListingAccessGuard kind="product" category="mediaonline">
+                  <MediaOnlineGeneralInfo />
+                </ListingAccessGuard>
+              } 
+            />
+            <Route 
+              path="/mediaonline/product-info/:id" 
+              element={
+                <ListingAccessGuard kind="product" category="mediaonline">
+                  <ProductInfo category="mediaonline" />
+                </ListingAccessGuard>
+              } 
+            />
+            <Route 
+              path="/mediaonline/tech-info/:id" 
+              element={
+                <ListingAccessGuard kind="product" category="mediaonline">
+                  <TechInfo category="mediaonline" />
+                </ListingAccessGuard>
+              } 
+            />
+            <Route 
+              path="/mediaonline/go-live/:id" 
+              element={
+                <ListingAccessGuard kind="product" category="mediaonline">
+                  <GoLive category="mediaonline" />
+                </ListingAccessGuard>
+              } 
+            />
+
+            {/* Media Offline Routes - Specialized Components */}
+            <Route 
+              path="/mediaoffline" 
+              element={
+                <ListingAccessGuard kind="product" category="mediaoffline">
+                  <MediaOfflineGeneralInfo />
+                </ListingAccessGuard>
+              } 
+            />
+            <Route 
+              path="/mediaoffline/general-info" 
+              element={
+                <ListingAccessGuard kind="product" category="mediaoffline">
+                  <MediaOfflineGeneralInfo />
+                </ListingAccessGuard>
+              } 
+            />
+            <Route 
+              path="/mediaoffline/general-info/:id" 
+              element={
+                <ListingAccessGuard kind="product" category="mediaoffline">
+                  <MediaOfflineGeneralInfo />
+                </ListingAccessGuard>
+              } 
+            />
+            <Route 
+              path="/mediaoffline/product-info/:id" 
+              element={
+                <ListingAccessGuard kind="product" category="mediaoffline">
+                  <ProductInfo category="mediaoffline" />
+                </ListingAccessGuard>
+              } 
+            />
+            <Route 
+              path="/mediaoffline/tech-info/:id" 
+              element={
+                <ListingAccessGuard kind="product" category="mediaoffline">
+                  <TechInfo category="mediaoffline" />
+                </ListingAccessGuard>
+              } 
+            />
+            <Route 
+              path="/mediaoffline/go-live/:id" 
+              element={
+                <ListingAccessGuard kind="product" category="mediaoffline">
+                  <GoLive category="mediaoffline" />
+                </ListingAccessGuard>
+              } 
+            />
+
+            {/* Media-specific subcategory routes (multiplex, digital screens, hoarding) */}
+            {/* These routes use specialized components for complex media flows */}
+            <Route path="/mediaonline/mediaonlinemultiplexproductinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><MediaMultiplexProductInfo /></ListingAccessGuard>} />
+            <Route path="/mediaonline/mediamultiplextechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><MediaMultiplexTechInfo /></ListingAccessGuard>} />
             <Route path="/mediaonline/mediaonlinedigitalscreensinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><ProductInfo category="mediaonline" /></ListingAccessGuard>} />
             <Route path="/mediaonline/mediaonlinedigitalscreenstechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><TechInfo category="mediaonline" /></ListingAccessGuard>} />
             <Route path="/mediaonline/digitalscreensgolive/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><GoLive category="mediaonline" /></ListingAccessGuard>} />
-            <Route path="/mediaoffline/mediaofflinehoardinginfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><ProductInfo category="mediaoffline" /></ListingAccessGuard>} />
-            <Route path="/mediaoffline/mediaofflinehoardingtechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><TechInfo category="mediaoffline" /></ListingAccessGuard>} />
-            <Route path="/mediaoffline/hoardingsgolive/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><GoLive category="mediaoffline" /></ListingAccessGuard>} />
+            <Route path="/mediaoffline/mediaofflinehoardinginfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingProductInfo /></ListingAccessGuard>} />
+            <Route path="/mediaoffline/mediaofflinehoardingtechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingTechInfo /></ListingAccessGuard>} />
+            <Route path="/mediaoffline/hoardingsgolive/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingsGoLive /></ListingAccessGuard>} />
             <Route path="/mediaoffline/mediaofflineproductinfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><ProductInfo category="mediaoffline" /></ListingAccessGuard>} />
 
             {/* Voucher Routes */}
@@ -227,6 +345,54 @@ function App() {
                   } 
                 />
                 <Route 
+                  path={`/${category}/vouchertechinfo`} 
+                  element={
+                    <ListingAccessGuard kind="voucher" category={category}>
+                      <VoucherTechInfo category={category} />
+                    </ListingAccessGuard>
+                  } 
+                />
+                <Route 
+                  path={`/${category}/vouchertechinfo/:id`} 
+                  element={
+                    <ListingAccessGuard kind="voucher" category={category}>
+                      <VoucherTechInfo category={category} />
+                    </ListingAccessGuard>
+                  } 
+                />
+                <Route 
+                  path={`/${category}/voucherdesign`} 
+                  element={
+                    <ListingAccessGuard kind="voucher" category={category}>
+                      <VoucherDesign category={category} />
+                    </ListingAccessGuard>
+                  } 
+                />
+                <Route 
+                  path={`/${category}/voucherdesign/:id`} 
+                  element={
+                    <ListingAccessGuard kind="voucher" category={category}>
+                      <VoucherDesign category={category} />
+                    </ListingAccessGuard>
+                  } 
+                />
+                <Route 
+                  path={`/${category}/vouchergolive`} 
+                  element={
+                    <ListingAccessGuard kind="voucher" category={category}>
+                      <VoucherGoLive category={category} />
+                    </ListingAccessGuard>
+                  } 
+                />
+                <Route 
+                  path={`/${category}/vouchergolive/:id`} 
+                  element={
+                    <ListingAccessGuard kind="voucher" category={category}>
+                      <VoucherGoLive category={category} />
+                    </ListingAccessGuard>
+                  } 
+                />
+                <Route 
                   path={`/${category}/golive`} 
                   element={
                     <ListingAccessGuard kind="voucher" category={category}>
@@ -242,29 +408,14 @@ function App() {
                     </ListingAccessGuard>
                   } 
                 />
-                <Route 
-                  path={`/${category}/voucherdesign`} 
-                  element={
-                    <ListingAccessGuard kind="voucher" category={category}>
-                      <GoLive category={category} />
-                    </ListingAccessGuard>
-                  } 
-                />
-                <Route 
-                  path={`/${category}/voucherdesign/:id`} 
-                  element={
-                    <ListingAccessGuard kind="voucher" category={category}>
-                      <GoLive category={category} />
-                    </ListingAccessGuard>
-                  } 
-                />
               </React.Fragment>
             ))}
 
-            {/* Hotel voucher specific routes (spec 7.3: hotelsproductinfo, hotelstechinfo, hotelsgolive) */}
-            <Route path="/hotelsVoucher/hotelsproductinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><ProductInfo category="hotelsVoucher" /></ListingAccessGuard>} />
-            <Route path="/hotelsVoucher/hotelstechinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><TechInfo category="hotelsVoucher" /></ListingAccessGuard>} />
-            <Route path="/hotelsVoucher/hotelsgolive/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><GoLive category="hotelsVoucher" /></ListingAccessGuard>} />
+            {/* Hotel voucher specific routes - Using specialized HotelsProductInfo */}
+            <Route path="/hotelsVoucher/hotelsproductinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><HotelsProductInfo category="hotelsVoucher" /></ListingAccessGuard>} />
+            <Route path="/hotelsVoucher/hotelstechinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherTechInfo category="hotelsVoucher" /></ListingAccessGuard>} />
+            <Route path="/hotelsVoucher/hotelsdesign/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherDesign category="hotelsVoucher" /></ListingAccessGuard>} />
+            <Route path="/hotelsVoucher/hotelsgolive/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherGoLive category="hotelsVoucher" /></ListingAccessGuard>} />
 
             {/* Bulk Upload Routes */}
             <Route
