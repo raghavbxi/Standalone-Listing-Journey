@@ -25,7 +25,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
   const { companyType, isAdmin, loading } = useAuthUser();
   const { source, entryCompanyType } = useListingEntryContext();
 
-  const allowAdminAllCategories = isAdmin && source !== 'dashboard';
+  const allowAdminAllCategories = isAdmin && source === 'admin';
   const isNormalUserView = !allowAdminAllCategories;
   const effectiveCompanyType = companyType || entryCompanyType || 'Others';
   const allowedCategories = getAllowedCategories(effectiveCompanyType, allowAdminAllCategories);

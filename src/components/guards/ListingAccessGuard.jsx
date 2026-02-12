@@ -8,7 +8,7 @@ export default function ListingAccessGuard({ kind, category, children }) {
   const { companyType, isAdmin, loading } = useAuthUser();
   const { source, entryCompanyType } = useListingEntryContext();
 
-  const allowAdminAllCategories = isAdmin && source !== 'dashboard';
+  const allowAdminAllCategories = isAdmin && source === 'admin';
   const effectiveCompanyType = companyType || entryCompanyType || 'Others';
 
   if (loading) {

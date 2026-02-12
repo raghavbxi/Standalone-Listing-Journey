@@ -12,7 +12,7 @@ export default function AddProductCategorySelect() {
   const { source, entryCompanyType } = useListingEntryContext();
 
   // If user comes from bxi-dashboard, do not show admin all-categories view.
-  const allowAdminAllCategories = isAdmin && source !== 'dashboard';
+  const allowAdminAllCategories = isAdmin && source === 'admin';
   const effectiveCompanyType = companyType || entryCompanyType;
   const categories = getAllowedCategories(effectiveCompanyType, allowAdminAllCategories);
   const hasProductAccess = categories.length > 0;

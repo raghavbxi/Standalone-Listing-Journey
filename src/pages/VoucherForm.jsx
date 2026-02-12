@@ -26,7 +26,7 @@ export default function VoucherForm() {
   const { companyType, isAdmin, loading } = useAuthUser();
   const { source, entryCompanyType } = useListingEntryContext();
 
-  const allowAdminAllCategories = isAdmin && source !== 'dashboard';
+  const allowAdminAllCategories = isAdmin && source === 'admin';
   const effectiveCompanyType = companyType || entryCompanyType || 'Others';
   const allowedVoucherIds = getAllowedVouchers(effectiveCompanyType, allowAdminAllCategories).map((voucher) => voucher.id);
   const filteredVoucherTypes = voucherTypes.filter((voucher) => allowedVoucherIds.includes(voucher.id));

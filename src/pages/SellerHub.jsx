@@ -64,12 +64,14 @@ export default function SellerHub() {
 
   const companyType = companyTypeName || 'Others';
   const isMedia = companyType === 'Media';
-  const showAdminView = isAdmin && source !== 'dashboard';
+  const showAdminView = isAdmin && source === 'admin';
   const allowedCategories = getAllowedCategories(companyType, showAdminView);
   const allowedVouchers = getAllowedVouchers(companyType, showAdminView);
   const hasProductAccess = allowedCategories.length > 0;
   const hasVoucherAccess = allowedVouchers.length > 0;
-  const addListingPath = hasProductAccess ? '/add-product' : hasVoucherAccess ? '/generalVoucherForm' : '/sellerhub';
+  const addListingPath = hasProductAccess
+    ? (isMedia ? '/media-physical' : '/add-product')
+    : hasVoucherAccess ? '/generalVoucherForm' : '/sellerhub';
   const addListingLabel = hasProductAccess
     ? (isMedia ? 'Add Media' : 'Add Product')
     : 'Add Voucher';

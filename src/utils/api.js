@@ -89,6 +89,10 @@ export const productApi = {
   updateProduct: (data) =>
     api.put('product/update_product', data),
 
+  /** Media (online/offline) uses product_mutation per bxi-dashboard */
+  productMutation: (data) =>
+    api.post('product/product_mutation', data),
+
   relistProduct: (data) =>
     api.post('product/delist_relist_live_products', data),
 };

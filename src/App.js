@@ -14,6 +14,7 @@ import ProductPreview from './pages/ProductPreview';
 import BulkUpload from './pages/BulkUpload';
 import VoucherForm from './pages/VoucherForm';
 import AddProductCategorySelect from './pages/AddProductCategorySelect';
+import MediaOnlinePhysical from './pages/MediaOnlinePhysical';
 import { AuthGuard } from './components/AuthGuard';
 import ListingAccessGuard from './components/guards/ListingAccessGuard';
 
@@ -31,16 +32,16 @@ const voucherCategories = [
   'qsrVoucher', 'hotelsVoucher', 'otherVoucher'
 ];
 
-// Bulk Upload Categories
+// Bulk Upload Categories (matches spec Section 7.4; officesupply + path casing per bxi-dashboard)
 const bulkUploadCategories = [
-  { path: 'textilebulkupload', category: 'textile' },
-  { path: 'electronicbulkupload', category: 'electronics' },
-  { path: 'fmcgbulkupload', category: 'fmcg' },
-  { path: 'officesupplybulkupload', category: 'officesupply' },
-  { path: 'mobilitybulkupload', category: 'mobility' },
-  { path: 'otherbulkupload', category: 'others' },
-  { path: 'resturantbulkupload', category: 'restaurant' },
-  { path: 'mediaonlinebulkupload', category: 'mediaonline' },
+  { path: 'textilebulkupload', category: 'textile', showProductsPath: 'textileBulkuploadshowproducts' },
+  { path: 'electronicbulkupload', category: 'electronics', showProductsPath: 'electronicBulkuploadshowproducts' },
+  { path: 'fmcgbulkupload', category: 'fmcg', showProductsPath: 'fmcgBulkuploadshowproducts' },
+  { path: 'officesupplybulkupload', category: 'officesupply', showProductsPath: 'officesupplyBulkuploadshowproducts' },
+  { path: 'mobilitybulkupload', category: 'mobility', showProductsPath: 'mobilityBulkuploadshowproducts' },
+  { path: 'otherbulkupload', category: 'others', showProductsPath: 'otherBulkuploadshowproducts' },
+  { path: 'resturantbulkupload', category: 'restaurant', showProductsPath: 'resturantBulkuploadshowproducts' },
+  { path: 'mediaonlinebulkupload', category: 'mediaonline', showProductsPath: 'mediaonlineBulkuploadshowproducts' },
   { path: 'mediaofflinebulkupload', category: 'mediaoffline' },
 ];
 
@@ -64,6 +65,15 @@ function App() {
               element={
                 <ListingAccessGuard kind="product">
                   <AddProductCategorySelect />
+                </ListingAccessGuard>
+              }
+            />
+            {/* Media Physical – Online vs Offline, Single vs Bulk (per bxi-dashboard MediaOnlinePhysical) */}
+            <Route
+              path="/media-physical"
+              element={
+                <ListingAccessGuard kind="product">
+                  <MediaOnlinePhysical />
                 </ListingAccessGuard>
               }
             />
@@ -144,6 +154,17 @@ function App() {
                 />
               </React.Fragment>
             ))}
+
+            {/* Media-specific routes (multiplex, digital screens, hoarding – per spec 7.2) */}
+            <Route path="/mediaonline/mediaonlinemultiplexproductinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><ProductInfo category="mediaonline" /></ListingAccessGuard>} />
+            <Route path="/mediaonline/mediamultiplextechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><TechInfo category="mediaonline" /></ListingAccessGuard>} />
+            <Route path="/mediaonline/mediaonlinedigitalscreensinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><ProductInfo category="mediaonline" /></ListingAccessGuard>} />
+            <Route path="/mediaonline/mediaonlinedigitalscreenstechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><TechInfo category="mediaonline" /></ListingAccessGuard>} />
+            <Route path="/mediaonline/digitalscreensgolive/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><GoLive category="mediaonline" /></ListingAccessGuard>} />
+            <Route path="/mediaoffline/mediaofflinehoardinginfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><ProductInfo category="mediaoffline" /></ListingAccessGuard>} />
+            <Route path="/mediaoffline/mediaofflinehoardingtechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><TechInfo category="mediaoffline" /></ListingAccessGuard>} />
+            <Route path="/mediaoffline/hoardingsgolive/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><GoLive category="mediaoffline" /></ListingAccessGuard>} />
+            <Route path="/mediaoffline/mediaofflineproductinfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><ProductInfo category="mediaoffline" /></ListingAccessGuard>} />
 
             {/* Voucher Routes */}
             <Route
@@ -240,6 +261,11 @@ function App() {
               </React.Fragment>
             ))}
 
+            {/* Hotel voucher specific routes (spec 7.3: hotelsproductinfo, hotelstechinfo, hotelsgolive) */}
+            <Route path="/hotelsVoucher/hotelsproductinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><ProductInfo category="hotelsVoucher" /></ListingAccessGuard>} />
+            <Route path="/hotelsVoucher/hotelstechinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><TechInfo category="hotelsVoucher" /></ListingAccessGuard>} />
+            <Route path="/hotelsVoucher/hotelsgolive/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><GoLive category="hotelsVoucher" /></ListingAccessGuard>} />
+
             {/* Bulk Upload Routes */}
             <Route
               path="/bulkuploadproduct"
@@ -257,7 +283,7 @@ function App() {
                 </ListingAccessGuard>
               }
             />
-            {bulkUploadCategories.map(({ path, category }) => (
+            {bulkUploadCategories.map(({ path, category, showProductsPath }) => (
               <React.Fragment key={path}>
                 <Route 
                   path={`/${path}`} 
@@ -267,14 +293,16 @@ function App() {
                     </ListingAccessGuard>
                   } 
                 />
-                <Route 
-                  path={`/${category}Bulkuploadshowproducts`} 
-                  element={
-                    <ListingAccessGuard kind="product" category={category}>
-                      <BulkUpload category={category} />
-                    </ListingAccessGuard>
-                  } 
-                />
+                {showProductsPath && (
+                  <Route 
+                    path={`/${showProductsPath}`} 
+                    element={
+                      <ListingAccessGuard kind="product" category={category}>
+                        <BulkUpload category={category} />
+                      </ListingAccessGuard>
+                    } 
+                  />
+                )}
               </React.Fragment>
             ))}
             <Route

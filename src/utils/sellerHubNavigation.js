@@ -63,6 +63,14 @@ const stepMappings = {
   'golive': '/go-live',
 };
 
+// Hotel voucher uses different step names (per bxi-dashboard)
+const hotelVoucherStepMappings = {
+  'generalinformation': '/generalinformation',
+  'productinformation': '/hotelsproductinfo',
+  'technicalinformation': '/hotelstechinfo',
+  'golive': '/hotelsgolive',
+};
+
 /**
  * Resolve the route for Edit or View action from Seller Hub
  * @param {Object} params
@@ -165,16 +173,23 @@ const resolveEditRoute = ({
     return `/mediaSheetsProductsPreview/${productId}`;
   }
 
-  // Handle Media company type
+  // Handle Media company type (multiplex, digital, hoarding have specific step routes)
   if (companyType === 'Media') {
+    const reviewKey = (reviewReasonNavigation || 'productinformation').toLowerCase();
     if (productCategory === 'Multiplex ADs') {
       if (productSubCategory === 'Digital ADs') {
-        return `/mediaonline/mediaonlinedigitalscreensinfo/${productId}`;
+        const digitalSteps = { productinformation: 'mediaonlinedigitalscreensinfo', technicalinformation: 'mediaonlinedigitalscreenstechinfo', golive: 'digitalscreensgolive' };
+        const digitalStep = digitalSteps[reviewKey] || 'mediaonlinedigitalscreensinfo';
+        return `/mediaonline/${digitalStep}/${productId}`;
       }
-      return `/mediaonline/mediaonlinemultiplexproductinfo/${productId}`;
+      const multiplexSteps = { productinformation: 'mediaonlinemultiplexproductinfo', technicalinformation: 'mediamultiplextechinfo', golive: 'go-live' };
+      const multiplexStep = multiplexSteps[reviewKey] || 'mediaonlinemultiplexproductinfo';
+      return `/mediaonline/${multiplexStep}/${productId}`;
     }
     if (productCategory === 'Hoardings' || productSubCategory === 'Hoardings') {
-      return `/mediaoffline/mediaofflinehoardinginfo/${productId}`;
+      const hoardingSteps = { productinformation: 'mediaofflinehoardinginfo', technicalinformation: 'mediaofflinehoardingtechinfo', golive: 'hoardingsgolive' };
+      const hoardingStep = hoardingSteps[reviewKey] || 'mediaofflinehoardinginfo';
+      return `/mediaoffline/${hoardingStep}/${productId}`;
     }
     return `/mediaoffline/product-info/${productId}`;
   }
@@ -183,8 +198,20 @@ const resolveEditRoute = ({
   if (listingType === 'Voucher') {
     const voucherRoute = voucherRoutes[companyType];
     if (voucherRoute) {
-      // Map step names for vouchers
-      const voucherStep = step === '/general-info' ? '/generalinformation' : step;
+      // Hotel voucher uses different step names (hotelsproductinfo, hotelstechinfo, hotelsgolive)
+      const isHotel = companyType === 'Hotel' || companyType === 'Hotels';
+      const reviewKey = (reviewReasonNavigation || '').toLowerCase();
+      if (isHotel && hotelVoucherStepMappings[reviewKey]) {
+        return `${voucherRoute}${hotelVoucherStepMappings[reviewKey]}/${productId}`;
+      }
+      // Generic voucher step mapping: product step 2->techinfo, 3->golive, 4->voucherdesign
+      const voucherStepMap = {
+        '/general-info': '/generalinformation',
+        '/product-info': '/techinfo',
+        '/tech-info': '/golive',
+        '/go-live': '/voucherdesign',
+      };
+      const voucherStep = voucherStepMap[step] || '/generalinformation';
       return `${voucherRoute}${voucherStep}/${productId}`;
     }
     return `/voucher/voucherinfo/${productId}`;
