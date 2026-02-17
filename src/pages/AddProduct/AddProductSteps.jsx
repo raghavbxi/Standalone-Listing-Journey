@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
-import { ArrowLeft, ArrowRight, Save, CheckCircle2, Info, X, CloudUpload, ImageIcon, Trash2, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, CheckCircle2, Info, X, CloudUpload, ImageIcon, Trash2, Tag, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -43,6 +43,7 @@ import { Calendar } from '../../components/ui/calendar';
 import { Checkbox } from '../../components/ui/checkbox';
 import StateData from '../../utils/StateCityArray.json';
 import { supportsBulkUpload, downloadBulkUploadTemplate } from '../../utils/excelTemplates';
+import { Divider } from '@mui/material';
 
 const STATE_REGION_MAP = {
   'Delhi': 'North', 'Haryana': 'North', 'Punjab': 'North', 'Uttar Pradesh': 'North',
@@ -652,18 +653,15 @@ export const ProductInfo = ({ category }) => {
   const [otherCosts, setOtherCosts] = useState([]);
   const [otherCostForm, setOtherCostForm] = useState({ AdCostApplicableOn: 'All', CostPrice: '', currencyType: '₹', AdCostHSN: '', AdCostGST: 18, ReasonOfCost: '' });
   const [productsVariations, setProductsVariations] = useState([]);
+  const [productData, setProductData] = useState(null);
+  const descriptionRef = useRef(null);
   
   // Manufacturing & Expiry Dates
   const [manufacturingDate, setManufacturingDate] = useState(null);
   const [hasExpiryDate, setHasExpiryDate] = useState(false);
   const [expiryDate, setExpiryDate] = useState(null);
   
-  // Mobility Registration Details
-  const [registrationDetails, setRegistrationDetails] = useState({
-    registrationDetails: '',
-    insuranceDetails: '',
-    taxesDetails: '',
-  });
+  // Mobility Registration Details (managed by react-hook-form)
 
   const piConfig = getProductInfoConfig(category);
   const { prev: prevStepPath, next: nextStepPath } = getPrevNextStepPaths(category, 'productInfo', location?.pathname);
@@ -712,6 +710,12 @@ export const ProductInfo = ({ category }) => {
     }
   }, [locationDetails.state]);
 
+  useEffect(() => {
+    if (selectedFeature) {
+      descriptionRef.current.focus();
+    }
+  }, []);
+  
   const handlePincodeLookup = async (pincode) => {
     if (String(pincode).length !== 6) return;
     try {
@@ -777,8 +781,20 @@ export const ProductInfo = ({ category }) => {
       return;
     }
     const hs = String(otherCostForm.AdCostHSN || '').trim();
-    if (!/^\d{4}$|^\d{6}$|^\d{8}$/.test(hs) && hs) {
+    if (!hs) {
+      toast.error('HSN is required');
+      return;
+    }
+    if (!/^\d{4}$|^\d{6}$|^\d{8}$/.test(hs)) {
       toast.error('HSN must be 4, 6, or 8 digits');
+      return;
+    }
+    if (hs.startsWith('0')) {
+      toast.error('HSN cannot start with 0');
+      return;
+    }
+    if (/^0+$/.test(hs)) {
+      toast.error('HSN cannot be all zeros');
       return;
     }
     setOtherCosts((prev) => [...prev, {
@@ -812,6 +828,18 @@ export const ProductInfo = ({ category }) => {
       toast.error('HSN is required');
       return;
     }
+    if (d.hsn && !/^\d{4}$|^\d{6}$|^\d{8}$/.test(d.hsn)) {
+      toast.error('HSN must be 4, 6, or 8 digits');
+      return;
+    }
+    if (d.hsn && d.hsn.startsWith('0')) {
+      toast.error('HSN cannot start with 0');
+      return;
+    }
+    if (d.hsn && /^0+$/.test(d.hsn)) {
+      toast.error('HSN cannot be all zeros');
+      return;
+    }
     if (d.selectedSize === 'Shoes' && !d.shoeSize) {
       toast.error('Please select a shoe size');
       return;
@@ -831,6 +859,17 @@ export const ProductInfo = ({ category }) => {
       productSize = d.selectedSize;
     } else if (d.selectedSize === 'Volume' && d.volume) {
       productSize = `${d.volume}${d.sizeUnit || 'L'}`;
+    } else if (['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Custom Size'].includes(d.selectedSize) && d.sizeValue) {
+      productSize = `${d.sizeValue}${d.sizeUnit || 'cm'}`;
+    }
+    
+    if (discountedPrice > price) {
+      toast.error('Discounted MRP cannot be greater than MRP');
+      return;
+    }
+    if(parseInt(d.minOrderQty) > parseInt(d.maxOrderQty)){
+      toast.error('Min Order Quantity cannot be greater than Max Order Quantity');
+      return;
     }
     const variation = {
       PricePerUnit: price,
@@ -850,6 +889,28 @@ export const ProductInfo = ({ category }) => {
       ...(shoeSize && { ShoeSize: shoeSize }),
     };
     setProductsVariations((prev) => [...prev, variation]);
+    setValue('price', '');
+    setValue('discountedPrice', '');
+    setValue('productIdType', '');
+    setValue('length', '');
+    setValue('width', '');
+    setValue('height', '');
+    setValue('weight', '');
+    setValue('sizeValue', '');
+    setValue('volume', '');
+    setValue('shoeSize', '');
+    setValue('minOrderQty', '1');
+    setValue('maxOrderQty', '100');
+    setValue('gst', '');
+    setValue('hsn', '');
+    setValue('productSize', '');
+    setValue('productIdType', '');
+    setValue('length', '');
+    setValue('width', '');
+    setValue('height', '');
+    setValue('weight', '');
+    setValue('measurementUnit', '');
+    setValue('shoeSize', '');
     toast.success('Product variation added');
   };
 
@@ -893,8 +954,75 @@ export const ProductInfo = ({ category }) => {
       sampleAvailability: '',
       priceOfSample: '',
       volume: '',
+      registrationDetails: '',
+      insuranceDetails: '',
+      taxesDetails: '',
     }
   });
+
+  // Fetch product data
+  useEffect(() => {
+    if (!id) return;
+    const fetchProduct = async () => {
+      try {
+        const res = await productApi.getProductById(id);
+        const data = res?.data;
+        if (!data) return;
+
+        setProductData(data);
+
+        // Sync local states
+        if (data.ProductFeatures && Array.isArray(data.ProductFeatures)) {
+          setFeatureList(data.ProductFeatures);
+        }
+        if (data.OtherCost && Array.isArray(data.OtherCost)) {
+          setOtherCosts(data.OtherCost.map(oc => ({
+            AdCostApplicableOn: oc.AdCostApplicableOn || 'All',
+            CostPrice: oc.CostPrice || 0,
+            currencyType: oc.currencyType || '₹',
+            AdCostHSN: oc.AdCostHSN || '',
+            AdCostGST: oc.AdCostGST || 18,
+            ReasonOfCost: oc.ReasonOfCost || ''
+          })));
+        }
+        if (data.LocationDetails) {
+          setLocationDetails(prev => ({
+            ...prev,
+            ...data.LocationDetails
+          }));
+        }
+        if (data.ProductsVariantions && Array.isArray(data.ProductsVariantions)) {
+          setProductsVariations(data.ProductsVariantions);
+        }
+        if (data.ManufacturingDate) {
+          setManufacturingDate(new Date(data.ManufacturingDate));
+        }
+        if (data.ExpiryDate) {
+          setExpiryDate(new Date(data.ExpiryDate));
+          setHasExpiryDate(true);
+        }
+        
+        // Populate registration details from existing data
+        if (data.RegistrationDetails || data.InsuranceDetails || data.TaxesDetails) {
+          setValue('registrationDetails', data.RegistrationDetails || '');
+          setValue('insuranceDetails', data.InsuranceDetails || '');
+          setValue('taxesDetails', data.TaxesDetails || '');
+        }
+
+        // Handle category specific initializations
+        if (data.Gender) {
+          setValue('gender', data.Gender);
+        }
+        if (data.ProductForm) {
+          setValue('productForm', data.ProductForm);
+        }
+        
+      } catch (error) {
+        console.error('Error fetching product in ProductInfo:', error);
+      }
+    };
+    fetchProduct();
+  }, [id, category, setValue]);
 
   const selectedSize = watch('selectedSize');
 
@@ -952,7 +1080,13 @@ export const ProductInfo = ({ category }) => {
           Width: d.width || '',
           Height: d.height || '',
           Weight: d.weight || '',
+          Weight: d.weight || '',
         }];
+        
+        if (variants[0].DiscountedPrice > variants[0].PricePerUnit) {
+           toast.error('Discounted MRP cannot be greater than MRP');
+           return;
+        }
       }
       const payload = {
         _id: id,
@@ -975,10 +1109,10 @@ export const ProductInfo = ({ category }) => {
         // FMCG Product Form
         ...(category === 'fmcg' && data.productForm && { ProductForm: data.productForm }),
         // Mobility Registration Details
-        ...(category === 'mobility' && productData?.hasRegistrationProcess === 'Yes' && {
-          RegistrationDetails: registrationDetails.registrationDetails || '',
-          InsuranceDetails: registrationDetails.insuranceDetails || '',
-          TaxesDetails: registrationDetails.taxesDetails || '',
+        ...(category === 'mobility' && productData?.HasRegistrationProcess === 'Yes' && {
+          RegistrationDetails: data.registrationDetails || '',
+          InsuranceDetails: data.insuranceDetails || '',
+          TaxesDetails: data.taxesDetails || '',
         }),
       };
       await productApi.updateProduct(payload);
@@ -1141,7 +1275,7 @@ export const ProductInfo = ({ category }) => {
                   <Label>Size <span className="text-red-500">*</span></Label>
                   <div className="flex gap-2">
                     <Input
-                      type="text"
+                      type="number"
                       placeholder="e.g. 10"
                       {...register('sizeValue')}
                       className="flex-1"
@@ -1233,7 +1367,7 @@ export const ProductInfo = ({ category }) => {
 
             {/* Manufacturing & Expiry Dates – for electronics, fmcg, officesupply, mobility, restaurant, others */}
             {!category?.endsWith?.('Voucher') && ['electronics', 'fmcg', 'officesupply', 'mobility', 'restaurant', 'others'].includes(category) && (
-              <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
+              <div className="space-y-4 pt-4">
                 <h3 className="text-base font-semibold text-[#111827]">Product Dates</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1520,117 +1654,9 @@ export const ProductInfo = ({ category }) => {
               </div>
             </div>
 
-            {/* Mobility Registration & Compliance Details – only when hasRegistrationProcess === 'Yes' */}
-            {category === 'mobility' && productData?.hasRegistrationProcess === 'Yes' && (
-              <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
-                <h3 className="text-base font-semibold text-[#111827]">Registration & Compliance Details</h3>
-                <p className="text-sm text-[#6B7A99]">
-                  Provide registration, insurance, and tax details for this mobility product
-                </p>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="registrationDetails">Registration Details</Label>
-                    <Textarea
-                      id="registrationDetails"
-                      placeholder="Enter registration requirements and process details..."
-                      rows={3}
-                      value={registrationDetails.registrationDetails}
-                      onChange={(e) => setRegistrationDetails(prev => ({ ...prev, registrationDetails: e.target.value }))}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="insuranceDetails">Insurance Details</Label>
-                    <Textarea
-                      id="insuranceDetails"
-                      placeholder="Enter insurance requirements and coverage details..."
-                      rows={3}
-                      value={registrationDetails.insuranceDetails}
-                      onChange={(e) => setRegistrationDetails(prev => ({ ...prev, insuranceDetails: e.target.value }))}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="taxesDetails">Taxes Details</Label>
-                    <Textarea
-                      id="taxesDetails"
-                      placeholder="Enter applicable taxes and related information..."
-                      rows={3}
-                      value={registrationDetails.taxesDetails}
-                      onChange={(e) => setRegistrationDetails(prev => ({ ...prev, taxesDetails: e.target.value }))}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Add Product Variation */}
-            {!category?.endsWith?.('Voucher') && (
-              <div className="space-y-4">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleAddVariation}
-                  className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3]"
-                  data-testid="btn-add-variation"
-                >
-                  Proceed to Add
-                </Button>
-                {productsVariations.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Added Variations ({productsVariations.length})</Label>
-                    <div className="rounded-md border border-[#E5E8EB] overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-[#F8F9FA] border-b border-[#E5E8EB]">
-                            <th className="text-left px-3 py-2">Size</th>
-                            <th className="text-left px-3 py-2">Color</th>
-                            <th className="text-left px-3 py-2">HSN</th>
-                            <th className="text-left px-3 py-2">GST</th>
-                            <th className="text-left px-3 py-2">Product ID</th>
-                            <th className="text-left px-3 py-2">MRP</th>
-                            <th className="text-left px-3 py-2">Disc. MRP</th>
-                            <th className="text-left px-3 py-2">Min</th>
-                            <th className="text-left px-3 py-2">Max</th>
-                            <th className="w-10 px-2 py-2"></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {productsVariations.map((v, idx) => (
-                            <tr key={idx} className="border-b border-[#E5E8EB] last:border-0">
-                              <td className="px-3 py-2">
-                                {v.ShoeSize ? `${v.ShoeSize} (${v.MeasurementUnit || ''})` : v.ProductSize || '-'}
-                              </td>
-                              <td className="px-3 py-2">
-                                <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: v.ProductColor || '#ffffff' }} />
-                                <span className="ml-1 text-xs font-mono">{v.ProductColor || '#ffffff'}</span>
-                              </td>
-                              <td className="px-3 py-2">{v.HSN || '-'}</td>
-                              <td className="px-3 py-2">{v.GST ? `${v.GST}%` : '-'}</td>
-                              <td className="px-3 py-2">{v.ProductIdType || '-'}</td>
-                              <td className="px-3 py-2">{v.PricePerUnit ?? '-'}</td>
-                              <td className="px-3 py-2">{v.DiscountedPrice ?? '-'}</td>
-                              <td className="px-3 py-2">{v.MinOrderQuantity ?? '-'}</td>
-                              <td className="px-3 py-2">{v.MaxOrderQuantity ?? '-'}</td>
-                              <td className="px-2 py-2">
-                                <button type="button" onClick={() => handleRemoveVariation(idx)} className="text-[#6B7A99] hover:text-[#C64091] p-1" aria-label="Remove variation">
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Sample provision */}
             {hasSampleCheckbox && (
-              <div className="space-y-4">
+              <div className="space-y-4 pt-4">
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
@@ -1670,9 +1696,218 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
+            {/* Add Product Variation */}
+            {!category?.endsWith?.('Voucher') && (
+              <div className="space-y-4 pt-4">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleAddVariation}
+                  className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3]"
+                  data-testid="btn-add-variation"
+                >
+                  Proceed to Add
+                </Button>
+                {productsVariations.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-3">No variations added yet</p>
+                )}
+                {productsVariations.length > 0 && (
+                  <div className="mt-4 overflow-x-auto rounded-md border border-[#E5E8EB]">
+                    <table className="w-full border-collapse bg-white text-sm">
+                      <thead className="bg-[#F9FAFB] text-[#374151]">
+                        <tr>
+                          <th className="px-3 py-2 text-center font-medium">Size</th>
+                          <th className="px-3 py-2 text-center font-medium">Color</th>
+                          <th className="px-3 py-2 text-center font-medium">HSN</th>
+                          <th className="px-3 py-2 text-center font-medium">GST</th>
+                          <th className="px-3 py-2 text-center font-medium">Product ID</th>
+                          <th className="px-3 py-2 text-center font-medium">MRP</th>
+                          <th className="px-3 py-2 text-center font-medium">Disc. MRP</th>
+                          <th className="px-3 py-2 text-center font-medium">Min</th>
+                          <th className="px-3 py-2 text-center font-medium">Max</th>
+                          <th className="px-3 py-2 text-center font-medium">Action</th>
+                        </tr>
+                      </thead>
+
+                      <tbody className="text-center">
+                        {productsVariations.map((v, idx) => (
+                          <tr
+                            key={v.ProductIdType || idx}
+                            className="border-t border-[#E5E8EB] hover:bg-[#F9FAFB]"
+                          >
+                            {/* Size */}
+                            <td className="px-3 py-2">
+                              {v.ShoeSize
+                                ? `${v.ShoeSize} (${v.MeasurementUnit || ''})`
+                                : v.ProductSize || '—'}
+                            </td>
+
+                            {/* Color */}
+                            <td className="px-3 py-2">
+                              {v.ProductColor ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <span
+                                    className="w-3 h-3 rounded-full border border-[#E5E8EB]"
+                                    style={{ backgroundColor: v.ProductColor }}
+                                  />
+                                  <span>{v.ProductColor}</span>
+                                </div>
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+
+                            {/* HSN */}
+                            <td className="px-3 py-2">
+                              {v.HSN || '—'}
+                            </td>
+
+                            {/* GST */}
+                            <td className="px-3 py-2">
+                              {v.GST ? `${v.GST}%` : '—'}
+                            </td>
+
+                            {/* Product ID */}
+                            <td className="px-3 py-2">
+                              {v.ProductIdType || '—'}
+                            </td>
+
+                            {/* MRP */}
+                            <td className="px-3 py-2 font-medium">
+                              {v.PricePerUnit
+                                ? `₹${Number(v.PricePerUnit).toLocaleString()}`
+                                : '—'}
+                            </td>
+
+                            {/* Discounted MRP */}
+                            <td className="px-3 py-2 font-medium">
+                              {v.DiscountedPrice
+                                ? `₹${Number(v.DiscountedPrice).toLocaleString()}`
+                                : '—'}
+                            </td>
+
+                            {/* Min */}
+                            <td className="px-3 py-2">
+                              {v.MinOrderQuantity ?? '—'}
+                            </td>
+
+                            {/* Max */}
+                            <td className="px-3 py-2">
+                              {v.MaxOrderQuantity ?? '—'}
+                            </td>
+
+                            {/* Remove */}
+                            <td className="px-3 py-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveVariation(idx)}
+                                className="text-[#6B7A99] hover:text-[#C64091] p-1"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Mobility Registration & Compliance Details – only when hasRegistrationProcess === 'Yes' */}
+            {category === 'mobility' && productData?.HasRegistrationProcess === 'Yes' && (
+              <>
+              <Divider/>
+              <div className="space-y-4 pt-4 ">
+                <h3 className="text-base font-semibold text-[#111827]">Registration & Compliance Details</h3>
+                <p className="text-sm text-[#6B7A99]">
+                  Provide registration, insurance, and tax details for this mobility product
+                </p>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="registrationDetails">Registration Details <span className="text-red-500">*</span></Label>
+                    <Textarea
+                      id="registrationDetails"
+                      placeholder="Enter registration requirements and process details..."
+                      rows={3}
+                      {...register('registrationDetails', {
+                        validate: (value) => {
+                          if (
+                            category === 'mobility' &&
+                            productData?.HasRegistrationProcess === 'Yes' &&
+                            !value?.trim()
+                          ) {
+                            return 'Registration details are required';
+                          }
+                          return true;
+                        }
+                      })}
+                      
+                    />
+                    {errors.registrationDetails && (
+                        <p className="text-sm text-red-500">{errors.registrationDetails.message}</p>
+                      )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="insuranceDetails">Insurance Details <span className="text-red-500">*</span></Label>
+                    <Textarea
+                      id="insuranceDetails"
+                      placeholder="Enter insurance requirements and coverage details..."
+                      rows={3}
+                      {...register('insuranceDetails', {
+                        validate: (value) => {
+                          if (
+                            category === 'mobility' &&
+                            productData?.HasRegistrationProcess === 'Yes' &&
+                            !value?.trim()
+                          ) {
+                            return 'Insurance details are required';
+                          }
+                          return true;
+                        }
+                      })}
+                    />
+                    {errors.insuranceDetails && (
+                        <p className="text-sm text-red-500">{errors.insuranceDetails.message}</p>
+                      )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="taxesDetails">Taxes Details <span className="text-red-500">*</span></Label>
+                    <Textarea
+                      id="taxesDetails"
+                      placeholder="Enter applicable taxes and related information..."
+                      rows={3}
+                      {...register('taxesDetails', {
+                        validate: (value) => {
+                          if (
+                            category === 'mobility' &&
+                            productData?.HasRegistrationProcess === 'Yes' &&
+                            !value?.trim()
+                          ) {
+                            return 'Taxes details are required';
+                          }
+                          return true;
+                        }
+                      })}
+                    />
+                    {errors.taxesDetails && (
+                      <p className="text-sm text-red-500">{errors.taxesDetails.message}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              </>
+            )}
+
             {/* Product Pickup Location */}
             {hasProductInfoExtras && (
-              <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
+            <>
+            <Divider/>
+              <div className="space-y-4 pt-4">
                 <h3 className="text-base font-semibold text-[#111827]">Product Pickup Location</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-2">
@@ -1742,11 +1977,13 @@ export const ProductInfo = ({ category }) => {
                   </div>
                 </div>
               </div>
+              </>
             )}
 
+            <Divider/>
             {/* Additional Cost */}
             {hasProductInfoExtras && (
-              <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
+              <div className="space-y-4 pt-4 ">
                 <h3 className="text-base font-semibold text-[#111827]">
                   Additional Cost <span className="text-sm font-normal text-[#6B7A99]">(Additional cost is not mandatory)</span>
                 </h3>
@@ -1823,98 +2060,210 @@ export const ProductInfo = ({ category }) => {
                     </Button>
                   </div>
                 </div>
-                {otherCosts.length > 0 && (
-                  <ul className="space-y-2 mt-4">
-                    {otherCosts.map((oc, idx) => (
-                      <li key={idx} className="flex items-center justify-between rounded-md border border-[#E5E8EB] bg-white px-3 py-2">
-                        <span>{oc.AdCostApplicableOn} • {oc.CostPrice} {oc.currencyType} • {oc.ReasonOfCost}</span>
-                        <button type="button" onClick={() => handleRemoveOtherCost(idx)} className="text-[#6B7A99] hover:text-[#C64091] p-1"><X className="w-4 h-4" /></button>
-                      </li>
-                    ))}
-                  </ul>
+                {otherCosts.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-3">
+                    No additional costs added yet.
+                  </p>
                 )}
+                {otherCosts.length > 0 && (
+                <div className="mt-4 overflow-x-auto rounded-md border border-[#E5E8EB]">
+                  <table className="w-full border-collapse bg-white text-sm">
+                    <thead className="bg-[#F9FAFB] text-[#374151]">
+                      <tr>
+                        <th className="px-3 py-2 text-center font-medium">Applicable On</th>
+                        <th className="px-3 py-2 text-center font-medium">Cost Price</th>
+                        <th className="px-3 py-2 text-center font-medium">Currency</th>
+                        <th className="px-3 py-2 text-center font-medium">HSN</th>
+                        <th className="px-3 py-2 text-center font-medium">GST</th>
+                        <th className="px-3 py-2 text-center font-medium">Reason</th>
+                        <th className="px-3 py-2 text-center font-medium">Action</th>
+                      </tr>
+                    </thead>
+
+                    <tbody className="text-center">
+                      {otherCosts.map((oc, idx) => (
+                        <tr
+                          key={idx}
+                          className="border-t border-[#E5E8EB] hover:bg-[#F9FAFB]"
+                        >
+                          <td className="px-3 py-2">
+                            {oc.AdCostApplicableOn === 'All' ? 'One Time' : 'Per Unit'}
+                          </td>
+
+                          <td className="px-3 py-2 font-medium">
+                            {oc.CostPrice}
+                          </td>
+
+                          <td className="px-3 py-2">
+                            {oc.currencyType}
+                          </td>
+
+                          <td className="px-3 py-2">
+                            {oc.AdCostHSN}
+                          </td>
+
+                          <td className="px-3 py-2">
+                            {oc.AdCostGST}%
+                          </td>
+
+                          <td className="px-3 py-2 max-w-[250px] truncate">
+                            {oc.ReasonOfCost}
+                          </td>
+
+                          <td className="px-3 py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveOtherCost(idx)}
+                              className="text-[#6B7A99] hover:text-[#C64091] p-1"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               </div>
             )}
 
+            <Divider/>
             {/* Product Features – always show for non-voucher categories */}
             {hasProductInfoExtras && (
-              <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
-                <h3 className="text-base font-semibold text-[#111827]">Product Features</h3>
-                <p className="text-sm text-[#6B7A99]">
-                  Select the best features that describe your brand/product (The more features you write the more you are discovered)
+            <div className="space-y-4 pt-4">
+              {/* Header */}
+              <div>
+                <h3 className="text-base font-semibold text-[#111827]">
+                  Product Features
+                </h3>
+                <p className="text-sm font-normal text-[#6B7A99]">
+                  Select the best features that describe your brand/product.
+                  <span className="block">
+                    (The more features you write, the more you are discovered)
+                  </span>
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {featureOptions.length > 0 ? (
-                    <div className="space-y-2">
-                      <Label>Select Best Features (Min {PRODUCT_FEATURE_MIN} and Max {PRODUCT_FEATURE_MAX})</Label>
-                      <Select
-                        value={selectedFeature}
-                        onValueChange={setSelectedFeature}
-                        disabled={featuresLoading}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={featuresLoading ? 'Loading...' : 'Select a feature'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {featureOptions
-                            .filter((o) => !featureList.some((f) => f.name === o.value))
-                            .map((o) => (
-                              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Label>Feature Name (Min {PRODUCT_FEATURE_MIN} and Max {PRODUCT_FEATURE_MAX})</Label>
-                      <Input
-                        placeholder="e.g. Water Resistant, Eco-Friendly"
-                        value={selectedFeature}
-                        onChange={(e) => setSelectedFeature(e.target.value)}
-                      />
-                    </div>
-                  )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                {featureOptions.length > 0 ? (
                   <div className="space-y-2">
-                    <Label>Feature Description *</Label>
+                    <Label className="text-sm font-medium">
+                      Select Best Features
+                    </Label>
+                    <Select
+                      value={selectedFeature}
+                      onValueChange={setSelectedFeature}
+                      disabled={featuresLoading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={featuresLoading ? 'Loading...' : 'Select a feature'}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {featureOptions
+                          .filter((o) => !featureList.some((f) => f.name === o.value))
+                          .map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      Feature Name
+                    </Label>
                     <Input
-                      placeholder="Eg. Smart watch (Type in two - three words)"
-                      value={featureDescription}
-                      onChange={(e) => setFeatureDescription(e.target.value)}
+                      placeholder="e.g. Water Resistant"
+                      value={selectedFeature}
+                      onChange={(e) => setSelectedFeature(e.target.value)}
                     />
                   </div>
-                  <div className="flex items-end">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={handleAddFeature}
-                      disabled={featureList.length >= PRODUCT_FEATURE_MAX || (!selectedFeature && !featureDescription?.trim())}
-                    >
-                      Proceed to Add
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-sm text-[#6B7A99]">
-                  Key Features ({featureList.length}) (Minimum {PRODUCT_FEATURE_MIN} required,{' '}
-                  {featureList.length >= PRODUCT_FEATURE_MIN ? '0' : String(PRODUCT_FEATURE_MIN - featureList.length)} more needed)
-                </p>
-                {featureList.length > 0 && (
-                  <ul className="space-y-2">
-                    {featureList.map((f, idx) => (
-                      <li key={idx} className="flex items-center justify-between gap-2 rounded-md border border-[#E5E8EB] bg-white px-3 py-2">
-                        <div>
-                          <span className="font-medium">{f.name}</span>
-                          {f.description && f.description !== f.name && (
-                            <span className="text-sm text-[#6B7A99] ml-2">— {f.description}</span>
-                          )}
-                        </div>
-                        <button type="button" onClick={() => handleRemoveFeature(idx)} className="text-[#6B7A99] hover:text-[#C64091] p-1"><X className="w-4 h-4" /></button>
-                      </li>
-                    ))}
-                  </ul>
                 )}
-              </div>
-            )}
 
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    Feature Description *
+                  </Label>
+                  <Input
+                    ref={descriptionRef}  
+                    placeholder="Eg. Smart watch (Type in two - three words)"
+                    value={featureDescription}
+                    onChange={(e) => setFeatureDescription(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    onClick={handleAddFeature}
+                    disabled={
+                      featureList.length >= PRODUCT_FEATURE_MAX ||
+                      !selectedFeature ||
+                      !featureDescription?.trim()
+                    }
+                    className="w-full"
+                  >
+                    Add Feature
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-[#6B7A99]">
+                  Minimum {PRODUCT_FEATURE_MIN} required • Max {PRODUCT_FEATURE_MAX}
+                </p>
+
+                <span className={`px-3 py-1 text-xs font-medium rounded-full 
+                  ${featureList.length >= PRODUCT_FEATURE_MIN 
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-yellow-100 text-yellow-700'
+                  }`}
+                >
+                  {featureList.length}/{PRODUCT_FEATURE_MAX}
+                </span>
+              </div>
+
+              {featureList.length > 0 ? (
+                <div className="space-y-3">
+                  {featureList.map((f, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-start justify-between gap-3 rounded-lg border border-[#E5E8EB] bg-[#F9FAFB] px-4 py-3 hover:shadow-sm transition"
+                    >
+                      <div>
+                        <p className="font-medium text-[#111827]">
+                          {f.name}
+                        </p>
+                        {f.description && f.description !== f.name && (
+                          <p className="text-sm text-[#6B7A99] mt-1">
+                            {f.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFeature(idx)}
+                        className="text-[#6B7A99] hover:text-[#C64091]"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
+                  No features added yet. Add at least {PRODUCT_FEATURE_MIN} features.
+                </div>
+              )}
+            </div>
+          )}
             {/* Actions */}
             <div className="flex justify-between pt-6">
               <Button
@@ -1928,7 +2277,16 @@ export const ProductInfo = ({ category }) => {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || (!category?.endsWith?.('Voucher') && productsVariations.length === 0) || (hasProductInfoExtras && featureList.length < PRODUCT_FEATURE_MIN)}
+                disabled={
+                  isSubmitting || 
+                  (!category?.endsWith?.('Voucher') && productsVariations.length === 0) || 
+                  (hasProductInfoExtras && featureList.length < PRODUCT_FEATURE_MIN) ||
+                  (category === 'mobility' && productData?.HasRegistrationProcess === 'Yes' && (
+                    !watch('registrationDetails')?.trim() || 
+                    !watch('insuranceDetails')?.trim() || 
+                    !watch('taxesDetails')?.trim()
+                  ))
+                }
                 className="bg-[#C64091] hover:bg-[#A03375]"
                 data-testid="btn-save-next"
               >
@@ -2067,25 +2425,43 @@ export const TechInfo = ({ category }) => {
               <h3 className="text-base font-semibold text-[#111827]">Physical Specifications</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="weight">Weight (kg)</Label>
+                  <Label htmlFor="weight">Weight (kg) <span className="text-red-500">*</span></Label>
                   <Input
                     id="weight"
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    {...register('weight')}
+                    {...register('weight', {
+                      required: 'Weight is required',
+                      min: {
+                        value: 0.01,
+                        message: 'Weight must be greater than 0'
+                      }
+                    })}
                     data-testid="input-weight"
                   />
+                  {errors.weight && (
+                    <p className="text-sm text-red-500">{errors.weight.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="dimensions">Dimensions (L x W x H cm)</Label>
+                  <Label htmlFor="dimensions">Dimensions (L x W x H cm) <span className="text-red-500">*</span></Label>
                   <Input
                     id="dimensions"
                     placeholder="10 x 10 x 10"
-                    {...register('dimensions')}
+                    {...register('dimensions', {
+                      required: 'Dimensions are required',
+                      pattern: {
+                        value: /^\d+(\.\d+)?\s*x\s*\d+(\.\d+)?\s*x\s*\d+(\.\d+)?$/,
+                        message: 'Format must be Length x Width x Height (e.g., 10 x 10 x 10)'
+                      }
+                    })}
                     data-testid="input-dimensions"
                   />
+                  {errors.dimensions && (
+                    <p className="text-sm text-red-500">{errors.dimensions.message}</p>
+                  )}
                 </div>
               </div>
 
@@ -2107,12 +2483,16 @@ export const TechInfo = ({ category }) => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label>Warranty Period</Label>
+                  <Label>Warranty Period <span className="text-red-500">*</span></Label>
+                  <input
+                    type="hidden"
+                    {...register('warranty', { required: 'Warranty period is required' })}
+                  />
                   <Select
                     value={watch('warranty')}
-                    onValueChange={(value) => setValue('warranty', value)}
+                    onValueChange={(value) => setValue('warranty', value, { shouldValidate: true })}
                   >
-                    <SelectTrigger data-testid="select-warranty">
+                    <SelectTrigger className={errors.warranty ? 'border-red-500' : ''} data-testid="select-warranty">
                       <SelectValue placeholder="Select warranty period" />
                     </SelectTrigger>
                     <SelectContent>
@@ -2125,6 +2505,9 @@ export const TechInfo = ({ category }) => {
                       <SelectItem value="lifetime">Lifetime</SelectItem>
                     </SelectContent>
                   </Select>
+                  {errors.warranty && (
+                    <p className="text-sm text-red-500">{errors.warranty.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -2163,12 +2546,18 @@ export const TechInfo = ({ category }) => {
               <h3 className="text-base font-semibold text-[#111827]">Packaging Information</h3>
               
               <div className="space-y-2">
-                <Label>Packaging Type</Label>
+                <Label>Packaging Type <span className="text-red-500">*</span></Label>
+                <input
+                  type="hidden"
+                  {...register('packagingType', { required: 'Packaging type is required' })}
+                />
                 <Select
                   value={watch('packagingType')}
-                  onValueChange={(value) => setValue('packagingType', value)}
+                  onValueChange={(value) =>
+                    setValue('packagingType', value, { shouldValidate: true })
+                  }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={errors.packagingType ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select packaging type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -2181,6 +2570,9 @@ export const TechInfo = ({ category }) => {
                     <SelectItem value="custom">Custom</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.packagingType && (
+                  <p className="text-sm text-red-500">{errors.packagingType.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -2257,13 +2649,17 @@ export const TechInfo = ({ category }) => {
             <div className="space-y-2 pt-4 border-t border-[#E5E8EB]">
               <Label htmlFor="tags">
                 <Tag className="w-4 h-4 inline mr-2" />
-                Product Tags (Optional)
+                Product Tags <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="tags"
                 placeholder="eco-friendly, handmade, premium, limited-edition (comma separated)"
-                {...register('tags')}
+                {...register('tags', { required: 'Product tags are required' })}
+                className={errors.tags ? 'border-red-500' : ''}
               />
+              {errors.tags && (
+                <p className="text-sm text-red-500">{errors.tags.message}</p>
+              )}
               <p className="text-xs text-[#6B7A99]">Add tags to help customers find your product</p>
             </div>
 
@@ -2292,7 +2688,14 @@ export const TechInfo = ({ category }) => {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={
+                  isSubmitting ||
+                  !watch('weight') ||
+                  !watch('dimensions') ||
+                  !watch('warranty') ||
+                  !watch('packagingType') ||
+                  !watch('tags')?.trim()
+                }
                 className="bg-[#C64091] hover:bg-[#A03375]"
                 data-testid="btn-save-next"
               >
@@ -2319,7 +2722,6 @@ export const GoLive = ({ category }) => {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [sizechart, setSizechart] = useState(null);
   const [sizeChartPreview, setSizeChartPreview] = useState(null);
-  const [listPeriod, setListPeriod] = useState('');
   const [productData, setProductData] = useState(null);
   const [selectedPreviewImage, setSelectedPreviewImage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -2328,6 +2730,12 @@ export const GoLive = ({ category }) => {
   const [uploadError, setUploadError] = useState(null);
   const inputRef = React.useRef(null);
   const sizechartRef = React.useRef(null);
+
+  const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm({
+    defaultValues: {
+      listPeriod: '',
+    },
+  });
 
   const isMediaCategory = MEDIA_CATEGORIES.includes(category);
   const requiresListingPeriod = !isMediaCategory;
@@ -2344,14 +2752,14 @@ export const GoLive = ({ category }) => {
       .then((res) => {
         const data = res?.data?.body ?? res?.data ?? res;
         setProductData(data);
-        if (data?.listperiod) setListPeriod(String(data.listperiod));
+        if (data?.listperiod) setValue('listPeriod', String(data.listperiod));
         if (data?.ProductImages?.[0]?.url && !selectedPreviewImage) setSelectedPreviewImage(data.ProductImages[0].url);
       })
       .catch(() => setProductData(null));
   }, [id]);
 
   useEffect(() => {
-    if (isMediaCategory) setListPeriod('1');
+    if (isMediaCategory) setValue('listPeriod', '1');
   }, [isMediaCategory]);
 
   const processFiles = (newFiles) => {
@@ -2426,8 +2834,7 @@ export const GoLive = ({ category }) => {
   ].filter((v, i, a) => a.indexOf(v) === i);
   const previewPrice = productData?.ProductsVariantions?.[0]?.DiscountedPrice ?? productData?.ProductsVariantions?.[0]?.PricePerUnit ?? 0;
 
-  const handleGoToPreview = async (e) => {
-    e.preventDefault();
+  const handleGoToPreview = async (data) => {
     setUploadError(null);
     const totalImages = files.length + (productData?.ProductImages?.length || 0);
     if (totalImages < 3) {
@@ -2439,7 +2846,7 @@ export const GoLive = ({ category }) => {
       return;
     }
     if (requiresListingPeriod) {
-      const val = listPeriod?.toString()?.trim();
+      const val = data.listPeriod?.toString()?.trim();
       if (!val && !productData?.listperiod) {
         toast.error('Please enter the listing period (days)');
         return;
@@ -2468,7 +2875,7 @@ export const GoLive = ({ category }) => {
     const formData = new FormData();
     formData.append('id', id);
     formData.append('ProductUploadStatus', 'golive');
-    formData.append('listperiod', listPeriod || (isMediaCategory ? '1' : '') || productData?.listperiod || '70');
+    formData.append('listperiod', data.listPeriod || (isMediaCategory ? '1' : '') || productData?.listperiod || '70');
     formData.append('ListingType', productData?.ListingType || 'Product');
     formData.append('productName', productData?.ProductName || '');
     formData.append('productSubCategory', productData?.ProductSubCategory || '');
@@ -2524,7 +2931,7 @@ export const GoLive = ({ category }) => {
                 </TooltipProvider>
               </div>
 
-              <form onSubmit={handleGoToPreview} className="space-y-6">
+              <form onSubmit={handleSubmit(handleGoToPreview)} className="space-y-6">
                 <div>
                   <Label className="text-base font-semibold">
                     Product Images <span className="text-red-500">*</span>
@@ -2583,12 +2990,12 @@ export const GoLive = ({ category }) => {
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); handleDeleteFile(idx); }}
-                              className="absolute top-2 right-2 p-1.5 rounded bg-white/90 text-red-500 hover:bg-red-500 hover:text-white"
+                              className="absolute top-2 right-2 p-1.5 rounded bg-white/90 text-red-500 hover:bg-red-500 hover:text-white z-20"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
                             {selectedPreviewImage === item.preview && (
-                              <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-[#C64091] text-white text-xs font-medium">Preview</span>
+                              <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-[#C64091] text-white text-xs font-medium z-10">Preview</span>
                             )}
                             <div
                               className="absolute inset-0 cursor-pointer"
@@ -2645,12 +3052,11 @@ export const GoLive = ({ category }) => {
                               min={1}
                               max={365}
                               placeholder="70"
-                              value={listPeriod}
-                              onChange={(e) => {
-                                const v = e.target.value.replace(/\D/g, '');
-                                const n = parseInt(v, 10);
-                                if (v === '' || (n >= 1 && n <= 365)) setListPeriod(v);
-                              }}
+                              {...register('listPeriod', {
+                                required: requiresListingPeriod ? 'Listing period is required' : false,
+                                min: 1,
+                                max: 365
+                              })}
                               className="text-center font-semibold text-[#C64091]"
                             />
                             <span className="text-sm text-[#6B7A99] py-2 px-3 bg-gray-100 rounded">Days</span>
@@ -2681,7 +3087,11 @@ export const GoLive = ({ category }) => {
                     </Button>
                     <Button
                       type="submit"
-                      disabled={isUploading}
+                      disabled={
+                        isUploading || 
+                        (requiresListingPeriod && !watch('listPeriod')) ||
+                        (files.length + (productData?.ProductImages?.length || 0)) < 3
+                      }
                       className="bg-[#C64091] hover:bg-[#A03375]"
                       data-testid="btn-go-preview"
                     >

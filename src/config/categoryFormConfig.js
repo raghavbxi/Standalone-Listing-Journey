@@ -21,7 +21,7 @@ export const SUBCATEGORY_ENDPOINTS = {
   fmcgVoucher: 'fmcgsub/Get_fmcg_subcategory',
   mobilityVoucher: 'mobilitysub/mobilitysubcategory',
   officesupplyVoucher: 'officesupplyubcategory/officesubcategory',
-  eeVoucher: 'entertainmentsub/getentertainsubcategory',
+  eeVoucher: 'entertainmentsub/Get_enter_sub',
   textileVoucher: 'subcategory/getsubcategory',
   lifestyleVoucher: 'lifestylesubcategory/lifestylegetsubcategory',
   qsrVoucher: 'restaurantsub/getrestuarantsubcategory',

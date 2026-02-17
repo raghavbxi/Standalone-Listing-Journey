@@ -22,7 +22,7 @@ import { getAllowedCategories, getAllowedVouchers } from '../../config/categorie
 export const Sidebar = ({ isOpen, onClose }) => {
   const [addProductOpen, setAddProductOpen] = React.useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = React.useState(false);
-  const { companyType, isAdmin, loading } = useAuthUser();
+  const { companyType, user, isAdmin, loading } = useAuthUser();
   const { source, entryCompanyType } = useListingEntryContext();
 
   const allowAdminAllCategories = isAdmin && source === 'admin';
@@ -77,7 +77,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
               <h1 className="text-lg font-bold text-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
                 BXI Listing
               </h1>
-              <p className="text-xs text-gray-500">Seller Portal</p>
+              <p className="text-xs text-gray-500">{user?.name}</p>
             </div>
           </div>
         </div>

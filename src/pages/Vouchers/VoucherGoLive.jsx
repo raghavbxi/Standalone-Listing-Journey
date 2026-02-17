@@ -99,11 +99,11 @@ export default function VoucherGoLive({ category }) {
                 </div>
                 <div>
                   <p className="text-sm text-[#6B7A99] mb-1">Category</p>
-                  <Badge variant="secondary">{productData?.MainCategory}</Badge>
+                  <Badge variant="secondary">{productData?.ProductType}</Badge>
                 </div>
                 <div>
                   <p className="text-sm text-[#6B7A99] mb-1">Sub Category</p>
-                  <Badge variant="secondary">{productData?.SubCategory}</Badge>
+                  <Badge variant="secondary">{productData?.ProductSubCategoryName}</Badge>
                 </div>
                 <div>
                   <p className="text-sm text-[#6B7A99] mb-1">Description</p>
