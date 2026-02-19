@@ -197,7 +197,7 @@ export const GeneralInformation = ({ category }) => {
     ? (category === 'hotelsVoucher' ? 'hotelsproductinfo' : 'techinfo')
     : 'product-info';
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
+  const { register, handleSubmit, formState: { errors, isValid }, setValue, watch } = useForm({
     defaultValues: {
       productName: '',
       productSubtitle: '',
@@ -509,7 +509,7 @@ export const GeneralInformation = ({ category }) => {
                 </div>
               )}
 
-              <Label htmlFor="subcategory">Subcategory</Label>
+              <Label htmlFor="subcategory">Subcategory <span className="text-red-500">*</span></Label>
               <input
                 type="hidden"
                 {...register('subcategory', { required: 'Subcategory is required' })}
@@ -614,7 +614,7 @@ export const GeneralInformation = ({ category }) => {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !watch('productName') || !watch('description') || !watch('subcategory') }
                 className="bg-[#C64091] hover:bg-[#A03375]"
                 data-testid="btn-save-next"
               >
@@ -1819,7 +1819,7 @@ export const ProductInfo = ({ category }) => {
             {category === 'mobility' && productData?.HasRegistrationProcess === 'Yes' && (
               <>
               <Divider/>
-              <div className="space-y-4 pt-4 ">
+              <div className="space-y-4 pt-4 pb-4">
                 <h3 className="text-base font-semibold text-[#111827]">Registration & Compliance Details</h3>
                 <p className="text-sm text-[#6B7A99]">
                   Provide registration, insurance, and tax details for this mobility product

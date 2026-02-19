@@ -23,6 +23,7 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { Skeleton } from '../components/ui/skeleton';
+import BXIIcon from '../assets/BXI_COIN.png';
 
 const defaultImage =
   'https://images.unsplash.com/photo-1612538498488-226257115cc4?w=400&h=400&fit=crop';
@@ -103,13 +104,13 @@ function DiscountedPriceDisplay({ regularPrice, discountPrice, percentage }) {
         </span>
         <span className="flex items-center gap-1 text-sm text-gray-500">
           ({formatPrice(gstPrice)}
-          <CircleDollarSign className="h-4 w-4 inline" />
+          <img src={BXIIcon} alt="GST" className="h-4 w-4 inline" />
           + {formatPrice(gstAmount)}₹ GST)
         </span>
       </div>
       {discountPercent > 0 && (
-        <span className="text-sm text-gray-400 line-through">
-          MRP: {formatPrice(reg)}
+        <span className="text-sm text-gray-400">
+          MRP: <span className="text-gray-400 line-through">{formatPrice(reg)}</span>
         </span>
       )}
       <span className="text-xs text-gray-500">All prices are inclusive of Taxes</span>
@@ -461,20 +462,50 @@ export default function ProductPreview() {
         {/* Tabs */}
         <div className="mt-10 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <Tabs defaultValue="1" className="w-full">
-            <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-12">
-              <TabsTrigger value="1" className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent">
+            <TabsList className="w-full justify-start border-b bg-gray-50 px-4 h-14 gap-8">
+              <TabsTrigger
+                value="1"
+                className="relative pb-3 text-sm font-medium text-gray-600 
+                data-[state=active]:text-[#1E40AF] 
+                data-[state=active]:after:absolute 
+                data-[state=active]:after:-bottom-[1px] 
+                data-[state=active]:after:left-0 
+                data-[state=active]:after:h-[3px] 
+                data-[state=active]:after:w-full 
+                data-[state=active]:after:bg-[#1E40AF]"
+              >
                 Description
               </TabsTrigger>
-              <TabsTrigger value="2" className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent">
-                Price & Availability
-              </TabsTrigger>
-              <TabsTrigger value="3" className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent">
+
+              <TabsTrigger
+                value="2"
+                className="relative pb-3 text-sm font-medium text-gray-600 
+                data-[state=active]:text-[#1E40AF] 
+                data-[state=active]:after:absolute 
+                data-[state=active]:after:-bottom-[1px] 
+                data-[state=active]:after:left-0 
+                data-[state=active]:after:h-[3px] 
+                data-[state=active]:after:w-full 
+                data-[state=active]:after:bg-[#1E40AF]"
+              >
                 Technical Information
               </TabsTrigger>
-              <TabsTrigger value="4" className="rounded-none border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent">
+
+              <TabsTrigger
+                value="3"
+                className="relative pb-3 text-sm font-medium text-gray-600 
+                data-[state=active]:text-[#1E40AF] 
+                data-[state=active]:after:absolute 
+                data-[state=active]:after:-bottom-[1px] 
+                data-[state=active]:after:left-0 
+                data-[state=active]:after:h-[3px] 
+                data-[state=active]:after:w-full 
+                data-[state=active]:after:bg-[#1E40AF]"
+              >
                 Key Features
               </TabsTrigger>
             </TabsList>
+
             <div className="p-6">
               <TabsContent value="1" className="mt-0">
                 {(() => {
@@ -583,74 +614,11 @@ export default function ProductPreview() {
                     </div>
                   )}
 
-                  {/* Technical Information subsection in Description */}
-                  {product?.ProductTechInfo && (
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                      <p className="text-sm font-semibold text-[#1E40AF] mb-3">Technical Information</p>
-                      <div className="space-y-3">
-                        {product.ProductTechInfo?.Warranty && (
-                          <div>
-                            <p className="text-xs text-gray-500">Warranty</p>
-                            <p className="text-gray-700">{product.ProductTechInfo.Warranty}{product.WarrantyPeriod ? ` ${product.WarrantyPeriod}` : ''}</p>
-                          </div>
-                        )}
-                        {product.ProductTechInfo?.Guarantee && (
-                          <div>
-                            <p className="text-xs text-gray-500">Guarantee</p>
-                            <p className="text-gray-700">{product.ProductTechInfo.Guarantee}</p>
-                          </div>
-                        )}
-                        {product.ProductTechInfo?.WeightBeforePackingPerUnit && (
-                          <div className="flex items-start gap-2">
-                            <Scale className="h-5 w-5 text-gray-500 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="text-xs text-gray-500">Product Weight Before Packaging</p>
-                              <p className="text-gray-700">
-                                {product.ProductTechInfo.WeightBeforePackingPerUnit}{' '}
-                                {product.WeightBeforePackingPerUnitMeasurUnit || product.UnitOfWeight || ''}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
                   );
                 })()}
               </TabsContent>
               <TabsContent value="2" className="mt-0">
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-600">
-                    Price and availability are shown for the selected variant above.
-                  </p>
-                  {variants.length > 1 && (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Variant</TableHead>
-                          <TableHead>Min QTY</TableHead>
-                          <TableHead>Max QTY</TableHead>
-                          <TableHead>Price</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {variants.map((v) => (
-                          <TableRow key={v._id ?? v.id}>
-                            <TableCell>
-                              {v.ProductIdType} / {v.ProductSize || v.flavor || 'N/A'}
-                            </TableCell>
-                            <TableCell>{v.MinOrderQuantity ?? 'N/A'}</TableCell>
-                            <TableCell>{v.MaxOrderQuantity ?? 'N/A'}</TableCell>
-                            <TableCell>{formatPrice(v.DiscountedPrice)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </div>
-              </TabsContent>
-              <TabsContent value="3" className="mt-0">
                 {(() => {
                   const ti = product?.ProductTechInfo;
                   const hasAny =
@@ -659,83 +627,138 @@ export default function ProductPreview() {
                     ti?.Width ||
                     ti?.Length ||
                     ti?.Warranty ||
-                    ti?.Guarantee ||
-                    ti?.PackagingInfoPerUnit ||
-                    ti?.LegalInformation ||
-                    ti?.PackagingAndDeliveryInstructionsIfAny ||
-                    ti?.InstructionsToUseProduct;
+                    ti?.GuaranteePeriod ||
+                    ti?.PackagingDetails ||
+                    ti?.LegalCompliance ||
+                    ti?.PackagingType ||
+                    ti?.UsageInstructions ||
+                    ti?.CareInstructions ||
+                    ti?.SafetyWarnings || 
+                    ti?.Certifications; 
+                  
                   if (!hasAny) {
                     return <p className="text-gray-500">No technical information available.</p>;
                   }
+                  
                   return (
-                <div className="space-y-6">
-                  <p className="text-base font-semibold text-[#1E40AF]">Technical Information</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {ti?.Warranty && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide">Warranty</p>
-                        <p className="font-medium text-gray-900 mt-1">
-                          {ti.Warranty}
-                          {product.WarrantyPeriod ? ` ${product.WarrantyPeriod}` : ''}
-                        </p>
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {ti?.Warranty && (
+                          <div>
+                            <p className="text-base font-semibold text-[#1E40AF] mb-2">Warranty</p>
+                            <p className="font-medium text-gray-900 mt-1">{ti.Warranty}</p>
+                          </div>
+                        )}
+                        {ti?.GuaranteePeriod && (
+                          <div>
+                            <p className="text-base font-semibold text-[#1E40AF] mb-2">Guarantee Period</p>
+                            <p className="font-medium text-gray-900 mt-1">{ti.GuaranteePeriod}</p>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {ti?.Guarantee && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide">Guarantee</p>
-                        <p className="font-medium text-gray-900 mt-1">{ti.Guarantee}</p>
-                      </div>
-                    )}
-                  </div>
 
-                  {ti?.WeightBeforePackingPerUnit && (
-                    <div>
-                      <p className="text-base font-semibold text-[#1E40AF] mb-2">Packaging Information</p>
-                      <div className="flex items-start gap-3">
-                        <Scale className="h-10 w-10 text-gray-500 shrink-0" />
+                      {(ti?.Height || ti?.Width || ti?.Length) && (
                         <div>
-                          <p className="text-sm text-gray-600">Product Weight Before Packaging</p>
-                          <p className="font-medium text-gray-900">
-                            {ti.WeightBeforePackingPerUnit}{' '}
-                            {product.WeightBeforePackingPerUnitMeasurUnit || product.UnitOfWeight || 'Grams'}
-                          </p>
+                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Dimensions</p>
+                          <div className="grid grid-cols-3 gap-4">
+                            {ti?.Height && (
+                              <div>
+                                <p className="text-sm text-gray-600">Height</p>
+                                <p className="font-medium text-gray-900">{ti.Height}</p>
+                              </div>
+                            )}
+                            {ti?.Width && (
+                              <div>
+                                <p className="text-sm text-gray-600">Width</p>
+                                <p className="font-medium text-gray-900">{ti.Width}</p>
+                              </div>
+                            )}
+                            {ti?.Length && (
+                              <div>
+                                <p className="text-sm text-gray-600">Length</p>
+                                <p className="font-medium text-gray-900">{ti.Length}</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  )}
+                      )}
 
-                  {ti?.PackagingInfoPerUnit && (
-                    <div>
-                      <p className="text-base font-semibold text-[#1E40AF] mb-2">Packaging Information Per Unit</p>
-                      <p className="text-gray-700">{ti.PackagingInfoPerUnit}</p>
-                    </div>
-                  )}
+                      {ti?.WeightBeforePackingPerUnit && (
+                        <div>
+                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Packaging Information</p>
+                          <div className="flex items-start gap-3">
+                            <Scale className="h-10 w-10 text-gray-500 shrink-0" />
+                            <div>
+                              <p className="text-sm text-gray-600">Product Weight Before Packaging</p>
+                              <p className="font-medium text-gray-900">
+                                {ti.WeightBeforePackingPerUnit}{' '}
+                                {product.WeightBeforePackingPerUnitMeasurUnit || product.UnitOfWeight || 'Grams'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
-                  {ti?.PackagingAndDeliveryInstructionsIfAny && (
-                    <div>
-                      <p className="text-base font-semibold text-[#1E40AF] mb-2">Packaging and Delivery Information</p>
-                      <p className="text-gray-700">{ti.PackagingAndDeliveryInstructionsIfAny}</p>
-                    </div>
-                  )}
+                      {ti?.PackagingDetails && (
+                        <div>
+                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Packaging Details</p>
+                          <p className="text-gray-700">{ti.PackagingDetails}</p>
+                        </div>
+                      )}
 
-                  {ti?.InstructionsToUseProduct && (
-                    <div>
-                      <p className="text-base font-semibold text-[#1E40AF] mb-2">Instructions to use product</p>
-                      <p className="text-gray-700">{ti.InstructionsToUseProduct}</p>
-                    </div>
-                  )}
+                      {ti?.GuaranteeDetails && (
+                        <div>
+                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Guarantee Details</p>
+                          <p className="text-gray-700">{ti.GuaranteeDetails}</p>
+                        </div>
+                      )}
 
-                  {ti?.LegalInformation && (
-                    <div>
-                      <p className="text-base font-semibold text-[#1E40AF] mb-2">Legal Information</p>
-                      <p className="text-gray-700">{ti.LegalInformation}</p>
+                      {ti?.PackagingType && (
+                        <div>
+                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Packaging Type</p>
+                          <p className="text-gray-700">{ti.PackagingType}</p>
+                        </div>
+                      )}
+
+                      {ti?.UsageInstructions && (
+                        <div>
+                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Instructions to use product</p>
+                          <p className="text-gray-700">{ti.UsageInstructions}</p>
+                        </div>
+                      )}
+
+                      {ti?.CareInstructions && (
+                        <div>
+                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Care Instructions</p>
+                          <p className="text-gray-700">{ti.CareInstructions}</p>
+                        </div>
+                      )}
+
+                      {ti?.SafetyWarnings && (
+                        <div>
+                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Safety Warnings</p>
+                          <p className="text-gray-700">{ti.SafetyWarnings}</p>
+                        </div>
+                      )}
+
+                      {ti?.Certifications && (
+                        <div>
+                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Certifications</p>
+                          <p className="text-gray-700">{ti.Certifications}</p>
+                        </div>
+                      )}
+
+                      {ti?.LegalCompliance && (
+                        <div>
+                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Legal Information</p>
+                          <p className="text-gray-700">{ti.LegalCompliance}</p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
                   );
                 })()}
               </TabsContent>
-              <TabsContent value="4" className="mt-0">
+              <TabsContent value="3" className="mt-0">
                 <div>
                   <p className="text-base font-semibold text-[#156DB6] mb-4">Key Features</p>
                   {product?.ProductFeatures?.length > 0 ? (
