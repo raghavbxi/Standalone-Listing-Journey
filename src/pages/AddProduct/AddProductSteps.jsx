@@ -44,6 +44,7 @@ import { Checkbox } from '../../components/ui/checkbox';
 import StateData from '../../utils/StateCityArray.json';
 import { supportsBulkUpload, downloadBulkUploadTemplate } from '../../utils/excelTemplates';
 import { Divider } from '@mui/material';
+import { InfoIcon } from 'lucide-react';
 
 const STATE_REGION_MAP = {
   'Delhi': 'North', 'Haryana': 'North', 'Punjab': 'North', 'Uttar Pradesh': 'North',
@@ -322,9 +323,37 @@ export const GeneralInformation = ({ category }) => {
           HasRegistrationProcess: giConfig.hasRadioButtons ? data.hasRegistrationProcess : undefined,
           HotelStars: giConfig.hasStarRating ? data.HotelStars : undefined,
         };
+        // bxi-dashboard GeneralInfoTemplate: VoucherType from localStorage (Offer Specific | Value Voucher / Gift Cards )
+        if (isVoucherCategory && typeof localStorage !== 'undefined') {
+          const voucherType = localStorage.getItem('digitalData');
+          if (voucherType) payload.VoucherType = voucherType;
+        }
       }
 
-      if (id && !isMedia) {
+      // bxi-dashboard uses product_mutation for all voucher steps (AddVoucherPages/TextileVoucher ProductHooksQuery)
+      if (id && isVoucherCategory) {
+        await productApi.productMutation({ _id: id, ...payload });
+        toast.success('General information updated!');
+      } else if (!id && isVoucherCategory) {
+        const res = await productApi.productMutation(payload);
+        const created = res?.data?.body ?? res?.data?.data ?? res?.data?.product ?? res?.data;
+        if (created?.name === 'ValidationError' || created?.errors) {
+          const firstError = created?.errors ? Object.values(created.errors)?.[0]?.message : null;
+          throw new Error(firstError || created?.message || 'Validation failed');
+        }
+        productId = created?._id ?? created?.id ?? created?.product?._id ?? created?.ProductData?._id;
+        if (!productId) {
+          const draftRes = await productApi.getDraftProducts(1);
+          const draftData = draftRes?.data?.products ?? draftRes?.data?.body?.products ?? draftRes?.data?.data?.products ?? [];
+          if (Array.isArray(draftData) && draftData.length > 0) {
+            productId = draftData[0]?._id;
+          }
+        }
+        if (!productId) {
+          throw new Error('Product was not created. Please check required fields and try again.');
+        }
+        toast.success('General information saved!');
+      } else if (id && !isMedia) {
         await productApi.updateProduct({ _id: id, ...payload });
         toast.success('General information updated!');
       } else if (isMedia) {
@@ -423,13 +452,25 @@ export const GeneralInformation = ({ category }) => {
         <Stepper currentStep={1} />
 
         <div className="form-section">
-          <h2 className="form-section-title">General Information - {categoryLabel}</h2>
+          <h2 className="form-section-title">
+            General Information - {categoryLabel}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <InfoIcon className="w-4 h-4 ml-2" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>General Information refers to broad and fundamental knowledge or facts about a particular Product OR Vouchers. It includes basic details, features, or descriptions that provide overview.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </h2>
           
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Product Name */}
             <div className="space-y-2">
               <Label htmlFor="productName">
-                Product Name <span className="text-red-500">*</span>
+                {isVoucherCategory ? 'Voucher Name' : 'Product Name'} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="productName"
@@ -444,9 +485,9 @@ export const GeneralInformation = ({ category }) => {
             </div>
 
             {/* Subtitle – shown when config.hasSubtitle */}
-            {giConfig.hasSubtitle && (
+            {giConfig.hasSubtitle && isVoucherCategory ? false : true && (
               <div className="space-y-2">
-                <Label htmlFor="productSubtitle">Product Subtitle</Label>
+                <Label htmlFor="productSubtitle">{isVoucherCategory ? 'Voucher Subtitle' : 'Product Subtitle'} <span className="text-red-500">*</span></Label>
                 <Input
                   id="productSubtitle"
                   placeholder="Short tagline (10–75 chars)"
@@ -509,7 +550,7 @@ export const GeneralInformation = ({ category }) => {
                 </div>
               )}
 
-              <Label htmlFor="subcategory">Subcategory <span className="text-red-500">*</span></Label>
+              <Label htmlFor="subcategory">{isVoucherCategory ? 'Voucher Subcategory' : 'Subcategory'} <span className="text-red-500">*</span></Label>
               <input
                 type="hidden"
                 {...register('subcategory', { required: 'Subcategory is required' })}
@@ -546,16 +587,19 @@ export const GeneralInformation = ({ category }) => {
               )}
             </div>
 
-            {/* Description */}
+            {/* Description – bxi GeneralInfoTemplate: max 1000 chars for voucher */}
             <div className="space-y-2">
               <Label htmlFor="description">
-                Description <span className="text-red-500">*</span>
+                {isVoucherCategory ? 'Voucher Description' : 'Description'} <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="description"
                 placeholder="Describe your product..."
                 rows={5}
-                {...register('description', { required: 'Description is required' })}
+                {...register('description', {
+                  required: 'Description is required',
+                  ...(isVoucherCategory && { maxLength: { value: 1000, message: 'Description cannot exceed 1000 characters' } }),
+                })}
                 className={errors.description ? 'border-red-500' : ''}
                 data-testid="input-description"
               />
@@ -565,7 +609,7 @@ export const GeneralInformation = ({ category }) => {
             </div>
 
             {/* Mobility: Registration process radio */}
-            {giConfig.hasRadioButtons && (
+            {giConfig.hasRadioButtons && !isVoucherCategory && (
               <div className="space-y-2">
                 <Label>{giConfig.radioButtonLabel}</Label>
                 <div className="flex gap-4">
@@ -655,6 +699,7 @@ export const ProductInfo = ({ category }) => {
   const [productsVariations, setProductsVariations] = useState([]);
   const [productData, setProductData] = useState(null);
   const descriptionRef = useRef(null);
+  const isVoucherCategory = category?.endsWith?.('Voucher');
   
   // Manufacturing & Expiry Dates
   const [manufacturingDate, setManufacturingDate] = useState(null);
@@ -859,8 +904,10 @@ export const ProductInfo = ({ category }) => {
       productSize = d.selectedSize;
     } else if (d.selectedSize === 'Volume' && d.volume) {
       productSize = `${d.volume}${d.sizeUnit || 'L'}`;
-    } else if (['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Custom Size'].includes(d.selectedSize) && d.sizeValue) {
+    } else if (d.selectedSize && d.sizeValue) {
       productSize = `${d.sizeValue}${d.sizeUnit || 'cm'}`;
+    } else if (d.selectedSize) {
+      productSize = d.selectedSize;
     }
     
     if (discountedPrice > price) {
@@ -960,7 +1007,6 @@ export const ProductInfo = ({ category }) => {
     }
   });
 
-  // Fetch product data
   useEffect(() => {
     if (!id) return;
     const fetchProduct = async () => {
@@ -1025,6 +1071,23 @@ export const ProductInfo = ({ category }) => {
   }, [id, category, setValue]);
 
   const selectedSize = watch('selectedSize');
+  useEffect(() => {
+    if (!selectedSize) return;
+    const s = selectedSize.toLowerCase();
+    if (s.includes('weight') || s === 'gsm') {
+      setValue('sizeUnit', s === 'gsm' ? 'gsm' : 'kg');
+    } else if (s.includes('battery') || s.includes('power')) {
+      setValue('sizeUnit', s.includes('battery') ? 'mAh' : 'W');
+    } else if (s.includes('volume')) {
+      setValue('sizeUnit', 'ml');
+    } else if (s === 'shelflife') {
+      setValue('sizeUnit', 'Months');
+    } else if (s === 'temprature') {
+      setValue('sizeUnit', '°C');
+    } else {
+      setValue('sizeUnit', 'cm');
+    }
+  }, [selectedSize, setValue]);
 
   const onSubmit = async (data) => {
     if (!id) {
@@ -1066,9 +1129,18 @@ export const ProductInfo = ({ category }) => {
       let variants = productsVariations;
       if (variants.length === 0 && isVoucher) {
         const d = getValues();
+        const price = parseFloat(String(d.price || 0).replace(/,/g, '')) || 0;
+        const discountedPrice = parseFloat(String(d.discountedPrice || 0).replace(/,/g, '')) || price;
+        
+        if (price <= 0) {
+          toast.error('MRP is required and must be greater than 0');
+          return;
+        }
+
+        // Variant shape aligned with bxi-dashboard (VoucherTypeOne/Two: validityOfVoucherValue, validityOfVoucherUnit)
         variants = [{
-          PricePerUnit: parseFloat(String(d.price || 0).replace(/,/g, '')) || 0,
-          DiscountedPrice: parseFloat(String(d.discountedPrice || 0).replace(/,/g, '')) || parseFloat(String(d.price || 0).replace(/,/g, '')) || 0,
+          PricePerUnit: price,
+          DiscountedPrice: discountedPrice,
           MinOrderQuantity: parseInt(d.minOrderQty, 10) || 1,
           MaxOrderQuantity: parseInt(d.maxOrderQty, 10) || 100,
           GST: String(d.gst || '18'),
@@ -1080,7 +1152,8 @@ export const ProductInfo = ({ category }) => {
           Width: d.width || '',
           Height: d.height || '',
           Weight: d.weight || '',
-          Weight: d.weight || '',
+          validityOfVoucherValue: d.validityOfVoucherValue ?? 12,
+          validityOfVoucherUnit: d.validityOfVoucherUnit || 'Months',
         }];
         
         if (variants[0].DiscountedPrice > variants[0].PricePerUnit) {
@@ -1115,7 +1188,9 @@ export const ProductInfo = ({ category }) => {
           TaxesDetails: data.taxesDetails || '',
         }),
       };
-      await productApi.updateProduct(payload);
+      console.log("payload in try block before api call",payload);
+      const response = await productApi.updateProduct(payload);
+      console.log("response in try block after api call",response);
       toast.success('Product information saved!');
       navigate(`/${category}/${nextPath}/${id}`);
     } catch (error) {
@@ -1132,10 +1207,10 @@ export const ProductInfo = ({ category }) => {
 
         <div className="form-section">
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="form-section-title">Product Information</h2>
+            <h2 className="form-section-title">{isVoucherCategory ? 'Voucher Information' : 'Product Information'}</h2>
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
+                <TooltipTrigger>
                   <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
                     <Info className="w-4 h-4" />
                   </button>
@@ -1146,7 +1221,6 @@ export const ProductInfo = ({ category }) => {
               </Tooltip>
             </TooltipProvider>
           </div>
-          <p className="text-sm text-[#6B7A99] mb-6">Complete your product details to make it discoverable</p>
           
           {/* Template Download for Bulk Upload Categories */}
           {supportsBulkUpload(category) && (
@@ -1268,11 +1342,12 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* Size value + unit – when dimension type selected (not clothing, not shoes) */}
-            {hasSizeOptions && selectedSize && !CLOTHING_SIZES.includes(selectedSize) && selectedSize !== 'Shoes' && ['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Custom Size'].includes(selectedSize) && (
+            {/* Generic size value + unit – For any size option not caught by specialized blocks */}
+            {hasSizeOptions && selectedSize && !CLOTHING_SIZES.includes(selectedSize) && selectedSize !== 'Shoes' && 
+             !['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Custom Size', 'Volume'].includes(selectedSize) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Size <span className="text-red-500">*</span></Label>
+                  <Label>{selectedSize} <span className="text-red-500">*</span></Label>
                   <div className="flex gap-2">
                     <Input
                       type="number"
@@ -1288,10 +1363,44 @@ export const ProductInfo = ({ category }) => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="cm">cm</SelectItem>
-                        <SelectItem value="in">in</SelectItem>
-                        <SelectItem value="m">m</SelectItem>
-                        <SelectItem value="kg">kg</SelectItem>
+                        {/* Dynamic units based on option name */}
+                        {(selectedSize.toLowerCase().includes('weight') || selectedSize === 'GSM') ? (
+                          <>
+                            <SelectItem value="kg">kg</SelectItem>
+                            <SelectItem value="g">g</SelectItem>
+                            <SelectItem value="gsm">gsm</SelectItem>
+                          </>
+                        ) : (selectedSize.toLowerCase().includes('battery') || selectedSize.toLowerCase().includes('power')) ? (
+                          <>
+                            <SelectItem value="mAh">mAh</SelectItem>
+                            <SelectItem value="Wh">Wh</SelectItem>
+                            <SelectItem value="W">W</SelectItem>
+                          </>
+                        ) : (selectedSize.toLowerCase().includes('volume') || selectedSize.toLowerCase().includes('capacity')) ? (
+                          <>
+                            <SelectItem value="ml">ml</SelectItem>
+                            <SelectItem value="L">L</SelectItem>
+                            <SelectItem value="cl">cl</SelectItem>
+                          </>
+                        ) : (selectedSize === 'ShelfLife') ? (
+                          <>
+                            <SelectItem value="Days">Days</SelectItem>
+                            <SelectItem value="Months">Months</SelectItem>
+                            <SelectItem value="Years">Years</SelectItem>
+                          </>
+                        ) : (selectedSize === 'Temprature') ? (
+                          <>
+                            <SelectItem value="°C">°C</SelectItem>
+                            <SelectItem value="°F">°F</SelectItem>
+                          </>
+                        ) : (
+                          <>
+                            <SelectItem value="cm">cm</SelectItem>
+                            <SelectItem value="in">in</SelectItem>
+                            <SelectItem value="m">m</SelectItem>
+                            <SelectItem value="units">units</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1594,13 +1703,10 @@ export const ProductInfo = ({ category }) => {
                   id="price"
                   type="number"
                   placeholder="1000"
-                  {...register('price', { required: 'MRP is required', min: 0 })}
+                  {...register('price', { min: 0 })}
                   className={errors.price ? 'border-red-500' : ''}
                   data-testid="input-price"
                 />
-                {errors.price && (
-                  <p className="text-sm text-red-500">{errors.price.message}</p>
-                )}
               </div>
 
               <div className="space-y-2">
@@ -2135,7 +2241,7 @@ export const ProductInfo = ({ category }) => {
               {/* Header */}
               <div>
                 <h3 className="text-base font-semibold text-[#111827]">
-                  Product Features
+                  {isVoucherCategory ? 'Voucher Features' : 'Product Features'}
                 </h3>
                 <p className="text-sm font-normal text-[#6B7A99]">
                   Select the best features that describe your brand/product.
@@ -2330,6 +2436,7 @@ export const TechInfo = ({ category }) => {
       certifications: '',
       tags: '',
       additionalInfo: '',
+      weightAfterPacking: '',
     }
   });
 
@@ -2356,6 +2463,7 @@ export const TechInfo = ({ category }) => {
           setValue('safetyWarnings', techInfo.SafetyWarnings || '');
           setValue('legalCompliance', techInfo.LegalCompliance || '');
           setValue('certifications', techInfo.Certifications || '');
+          setValue('weightAfterPacking', techInfo.WeightAfterPackingPerUnit || '');
         }
         
         if (res?.data?.ProductTags) {
@@ -2397,6 +2505,7 @@ export const TechInfo = ({ category }) => {
           SafetyWarnings: data.safetyWarnings || '',
           LegalCompliance: data.legalCompliance || '',
           Certifications: data.certifications || '',
+          WeightAfterPackingPerUnit: data.weightAfterPacking || '',
         },
         ProductTags: tags,
       };
@@ -2442,6 +2551,26 @@ export const TechInfo = ({ category }) => {
                   />
                   {errors.weight && (
                     <p className="text-sm text-red-500">{errors.weight.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="weightAfterPacking">Weight After Packaging (kg)</Label>
+                  <Input
+                    id="weightAfterPacking"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    {...register('weightAfterPacking', {
+                      min: {
+                        value: 0.01,
+                        message: 'Weight must be greater than 0'
+                      }
+                    })}
+                    data-testid="input-weight-after-packing"
+                  />
+                  {errors.weightAfterPacking && (
+                    <p className="text-sm text-red-500">{errors.weightAfterPacking.message}</p>
                   )}
                 </div>
 
@@ -2883,12 +3012,24 @@ export const GoLive = ({ category }) => {
     files.forEach((f) => formData.append('files', f));
     if (sizechart) formData.append('sizechart', sizechart);
 
+    console.log("formData",formData);
+    console.log("files",files);
+    console.log("sizechart",sizechart);
+    console.log("data.listPeriod",data.listPeriod);
+    console.log("productData?.listperiod",productData?.listperiod);
+    console.log("productData?.ListingType",productData?.ListingType);
+    console.log("productData?.ProductName",productData?.ProductName);
+    console.log("productData?.ProductSubCategory",productData?.ProductSubCategory);
+    console.log("productData?.ProductDescription",productData?.ProductDescription);
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      await productApi.productMutationFormData(formData, (ev) => {
+      console.log("formData in try block before api call",formData); 
+      const response = await productApi.productMutationFormData(formData, (ev) => {
+        console.log("ev",ev);
         if (ev.total) setUploadProgress(Math.round((ev.loaded * 100) / ev.total));
       });
+      console.log("response in try block after api call",response);
       toast.success('Images uploaded! Redirecting to preview.');
       if (isMediaCategory) {
         navigate(`/mediaonlineproductpreview/${id}`);
@@ -3155,7 +3296,7 @@ export const GoLive = ({ category }) => {
             )}
           </div>
         )}
-      </div>
+      </div> 
     </div>
   );
 };

@@ -16,7 +16,11 @@ export default function ListingAccessGuard({ kind, category, children }) {
   }
 
   let isAllowed = false;
-  if (kind === 'voucher') {
+  if (kind === 'listing') {
+    const allowedCategories = getAllowedCategories(effectiveCompanyType, allowAdminAllCategories);
+    const allowedVouchers = getAllowedVouchers(effectiveCompanyType, allowAdminAllCategories);
+    isAllowed = allowedCategories.length > 0 || allowedVouchers.length > 0;
+  } else if (kind === 'voucher') {
     const allowedVouchers = getAllowedVouchers(effectiveCompanyType, allowAdminAllCategories);
     isAllowed = category
       ? allowedVouchers.some((voucher) => voucher.id === category)

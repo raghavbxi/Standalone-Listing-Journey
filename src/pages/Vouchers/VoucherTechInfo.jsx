@@ -21,14 +21,15 @@ import api, { productApi } from '../../utils/api';
 import StateData from '../../utils/StateCityArray.json';
 import { getPrevNextStepPaths } from '../../config/categoryFormConfig';
 
+// Validation aligned with bxi-dashboard TechInfoTemplate: all text fields max 500 characters
 const schema = z.object({
-  inclusions: z.string().min(20, 'Minimum 20 characters').max(2000, 'Maximum 2000 characters'),
-  exclusions: z.string().min(20, 'Minimum 20 characters').max(2000, 'Maximum 2000 characters'),
-  termsAndConditions: z.string().min(20, 'Minimum 20 characters').max(3000, 'Maximum 3000 characters'),
-  redemptionSteps: z.string().min(20, 'Minimum 20 characters').max(2000, 'Maximum 2000 characters'),
-  redemptionType: z.enum(['Online', 'Offline', 'Both']),
-  codeGenerationType: z.enum(['BXI', 'Upload']),
-  onlineRedemptionUrl: z.string().url().optional().or(z.literal('')),
+  inclusions: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
+  exclusions: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
+  termsAndConditions: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
+  redemptionSteps: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
+  redemptionType: z.enum(['online', 'offline', 'both']),
+  codeGenerationType: z.enum(['bxi', 'self']),
+  onlineRedemptionUrl: z.string().optional().or(z.literal('')),
 });
 
 export default function VoucherTechInfo({ category }) {
@@ -66,8 +67,8 @@ export default function VoucherTechInfo({ category }) {
       exclusions: '',
       termsAndConditions: '',
       redemptionSteps: '',
-      redemptionType: 'Online',
-      codeGenerationType: 'BXI',
+      redemptionType: 'online',
+      codeGenerationType: 'bxi',
       onlineRedemptionUrl: '',
     },
   });
@@ -136,22 +137,43 @@ export default function VoucherTechInfo({ category }) {
       return;
     }
 
-    // Validation for online redemption URL
-    if ((redemptionType === 'Online' || redemptionType === 'Both') && !data.onlineRedemptionUrl) {
-      toast.error('Online redemption URL is required');
+    const redemptionTypeValue = (data.redemptionType || redemptionType || '').toLowerCase();
+
+    // bxi TechInfoTemplate: URL must not contain bxiworld
+    const url = (data.onlineRedemptionUrl || '').trim();
+    if (url && url.toLowerCase().includes('bxiworld')) {
+      toast.error('You can not use BXI world in Website Link');
       return;
     }
 
-    // Validation for offline address
-    if ((redemptionType === 'Offline' || redemptionType === 'Both')) {
-      if (!offlineAddress.address || !offlineAddress.city || !offlineAddress.state) {
-        toast.error('Complete offline address is required');
+    // bxi: online/both require valid Link (URL)
+    if (redemptionTypeValue === 'online' || redemptionTypeValue === 'both') {
+      if (!url) {
+        toast.error('This field is required');
+        return;
+      }
+      const urlRegex = /(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_+.~#?&//=]*)/g;
+      if (!url.match(urlRegex)) {
+        toast.error('Please enter valid URL.');
         return;
       }
     }
 
-    // Validation for code upload
-    if (codeGenerationType === 'Upload' && !codeFile) {
+    // bxi: offline/both require "Complete store address or Store list is required"
+    if (redemptionTypeValue === 'offline' || redemptionTypeValue === 'both') {
+      const hasAddress = offlineAddress.address?.trim() && offlineAddress.area?.trim() && offlineAddress.landmark?.trim() && offlineAddress.city?.trim() && offlineAddress.state?.trim();
+      if (!hasAddress && !storeListFile) {
+        toast.error('Complete store address or Store list is required.');
+        return;
+      }
+      if (offlineAddress.address?.trim() && (!offlineAddress.area?.trim() || !offlineAddress.landmark?.trim() || !offlineAddress.city?.trim() || !offlineAddress.state?.trim())) {
+        toast.error('Complete store address is required.');
+        return;
+      }
+    }
+
+    // bxi: CodeGenerationType 'self' requires voucher files
+    if ((data.codeGenerationType || codeGenerationType) === 'self' && !codeFile) {
       toast.error('Please upload voucher codes Excel file');
       return;
     }
@@ -163,23 +185,23 @@ export default function VoucherTechInfo({ category }) {
       formData.append('ProductUploadStatus', 'voucherdesign');
       formData.append('Inclusions', data.inclusions);
       formData.append('Exclusions', data.exclusions);
-      formData.append('TermsAndConditions', data.termsAndConditions);
+      formData.append('TermConditions', data.termsAndConditions);
       formData.append('RedemptionSteps', data.redemptionSteps);
-      formData.append('RedemptionType', data.redemptionType);
-      formData.append('CodeGenerationType', data.codeGenerationType);
+      formData.append('redemptionType', redemptionTypeValue);
+      formData.append('CodeGenerationType', data.codeGenerationType === 'self' ? 'self' : 'bxi');
 
-      if (data.onlineRedemptionUrl) {
-        formData.append('OnlineRedemptionURL', data.onlineRedemptionUrl);
+      if (url) formData.append('Link', url);
+
+      if (redemptionTypeValue === 'offline' || redemptionTypeValue === 'both') {
+        formData.append('Address', offlineAddress.address || '');
+        formData.append('Area', offlineAddress.area || '');
+        formData.append('Landmark', offlineAddress.landmark || '');
+        formData.append('City', offlineAddress.city || '');
+        formData.append('State', offlineAddress.state || '');
+        if (storeListFile) formData.append('HotelLocations', storeListFile);
       }
 
-      if (redemptionType === 'Offline' || redemptionType === 'Both') {
-        formData.append('OfflineAddress', JSON.stringify(offlineAddress));
-        if (storeListFile) {
-          formData.append('storeList', storeListFile);
-        }
-      }
-
-      if (codeGenerationType === 'Upload' && codeFile) {
+      if ((data.codeGenerationType || codeGenerationType) === 'self' && codeFile) {
         formData.append('voucherCodes', codeFile);
       }
 
@@ -200,27 +222,29 @@ export default function VoucherTechInfo({ category }) {
     <div className="min-h-screen bg-[#F8F9FA] py-8">
       <div className="form-container">
         <div className="form-section">
-          <h2 className="form-section-title">Voucher Technical Information</h2>
+          <h2 className="form-section-title">Voucher Information</h2>
           <p className="text-sm text-[#6B7A99] mb-6">
-            Provide redemption details, terms, and voucher code information
+            Technical information: inclusions, exclusions, terms, redemption details and voucher codes (aligned with bxi-dashboard TechInfoTemplate).
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Inclusions */}
+            {/* Inclusions – bxi StepTechInfo */}
             <div className="space-y-2">
               <Label htmlFor="inclusions">
                 Inclusions <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="inclusions"
-                placeholder="What's included in this voucher? (e.g., Free meal, 20% discount, complimentary services)"
+                placeholder="Inclusions"
                 rows={4}
+                maxLength={501}
                 {...register('inclusions')}
                 className={errors.inclusions ? 'border-red-500' : ''}
               />
               {errors.inclusions && (
                 <p className="text-sm text-red-500">{errors.inclusions.message}</p>
               )}
+              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
             </div>
 
             {/* Exclusions */}
@@ -230,31 +254,35 @@ export default function VoucherTechInfo({ category }) {
               </Label>
               <Textarea
                 id="exclusions"
-                placeholder="What's NOT included? (e.g., Alcohol, delivery charges, peak hour usage)"
+                placeholder="Exclusions"
                 rows={4}
+                maxLength={501}
                 {...register('exclusions')}
                 className={errors.exclusions ? 'border-red-500' : ''}
               />
               {errors.exclusions && (
                 <p className="text-sm text-red-500">{errors.exclusions.message}</p>
               )}
+              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
             </div>
 
-            {/* Terms & Conditions */}
+            {/* Terms & Conditions – bxi TermConditions */}
             <div className="space-y-2">
               <Label htmlFor="termsAndConditions">
                 Terms & Conditions <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="termsAndConditions"
-                placeholder="Complete terms and conditions for voucher usage..."
-                rows={6}
+                placeholder="Terms & Conditions"
+                rows={4}
+                maxLength={501}
                 {...register('termsAndConditions')}
                 className={errors.termsAndConditions ? 'border-red-500' : ''}
               />
               {errors.termsAndConditions && (
                 <p className="text-sm text-red-500">{errors.termsAndConditions.message}</p>
               )}
+              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
             </div>
 
             {/* Redemption Steps */}
@@ -264,51 +292,51 @@ export default function VoucherTechInfo({ category }) {
               </Label>
               <Textarea
                 id="redemptionSteps"
-                placeholder="How to redeem this voucher? (Step-by-step instructions)"
+                placeholder="Redemption Steps"
                 rows={4}
+                maxLength={501}
                 {...register('redemptionSteps')}
                 className={errors.redemptionSteps ? 'border-red-500' : ''}
               />
               {errors.redemptionSteps && (
                 <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
               )}
+              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
             </div>
 
-            {/* Redemption Type */}
+            {/* Redemption Type – bxi: "How can it be redeemed by buyer ?" */}
             <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
-              <h3 className="text-base font-semibold text-[#111827]">Redemption Details</h3>
-              
               <div className="space-y-2">
-                <Label>Redemption Type <span className="text-red-500">*</span></Label>
+                <Label>How can it be redeemed by buyer ? <span className="text-red-500">*</span></Label>
                 <RadioGroup
-                  value={redemptionType}
+                  value={redemptionType || 'online'}
                   onValueChange={(value) => setValue('redemptionType', value)}
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Online" id="online" />
+                    <RadioGroupItem value="online" id="online" />
                     <Label htmlFor="online" className="cursor-pointer font-normal">Online</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Offline" id="offline" />
+                    <RadioGroupItem value="offline" id="offline" />
                     <Label htmlFor="offline" className="cursor-pointer font-normal">Offline</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Both" id="both" />
+                    <RadioGroupItem value="both" id="both" />
                     <Label htmlFor="both" className="cursor-pointer font-normal">Both</Label>
                   </div>
                 </RadioGroup>
               </div>
 
-              {/* Online Redemption URL */}
-              {(redemptionType === 'Online' || redemptionType === 'Both') && (
+              {/* Link (online URL) – bxi LINKName = 'Link' */}
+              {(redemptionType === 'online' || redemptionType === 'both') && (
                 <div className="space-y-2">
                   <Label htmlFor="onlineRedemptionUrl">
-                    Online Redemption URL <span className="text-red-500">*</span>
+                    Add URL <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="onlineRedemptionUrl"
                     type="url"
-                    placeholder="https://example.com/redeem"
+                    placeholder="Add URL"
                     {...register('onlineRedemptionUrl')}
                     className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
                   />
@@ -318,15 +346,14 @@ export default function VoucherTechInfo({ category }) {
                 </div>
               )}
 
-              {/* Offline Address */}
-              {(redemptionType === 'Offline' || redemptionType === 'Both') && (
+              {/* Offline: Address ( If Single ) Type Below, Area, Landmark, City, State, Upload Store List */}
+              {(redemptionType === 'offline' || redemptionType === 'both') && (
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-[#111827]">Offline Redemption Address</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Address <span className="text-red-500">*</span></Label>
+                      <Label>Address ( If Single ) Type Below <span className="text-red-500">*</span></Label>
                       <Input
-                        placeholder="Street address"
+                        placeholder="Address ( If Single ) Type Below"
                         value={offlineAddress.address}
                         onChange={(e) => setOfflineAddress({ ...offlineAddress, address: e.target.value })}
                       />
@@ -334,15 +361,15 @@ export default function VoucherTechInfo({ category }) {
                     <div className="space-y-2">
                       <Label>Area <span className="text-red-500">*</span></Label>
                       <Input
-                        placeholder="Area or locality"
+                        placeholder="Area"
                         value={offlineAddress.area}
                         onChange={(e) => setOfflineAddress({ ...offlineAddress, area: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Landmark</Label>
+                      <Label>Landmark <span className="text-red-500">*</span></Label>
                       <Input
-                        placeholder="Nearby landmark"
+                        placeholder="Landmark"
                         value={offlineAddress.landmark}
                         onChange={(e) => setOfflineAddress({ ...offlineAddress, landmark: e.target.value })}
                       />
@@ -384,10 +411,9 @@ export default function VoucherTechInfo({ category }) {
                     </div>
                   </div>
 
-                  {/* Store List Upload */}
                   <div className="space-y-2">
-                    <Label>Store List (Optional)</Label>
-                    <p className="text-xs text-[#6B7A99]">Upload Excel file with store locations</p>
+                    <Label>Upload Store List ( If Multiple Locations) </Label>
+                    <p className="text-xs text-[#6B7A99]">Optional when both. Upload Excel with store locations.</p>
                     <div className="flex gap-4 items-center">
                       <Button
                         type="button"
@@ -424,33 +450,26 @@ export default function VoucherTechInfo({ category }) {
               )}
             </div>
 
-            {/* Code Generation */}
+            {/* Code Generation – bxi: "How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them)" */}
             <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
-              <h3 className="text-base font-semibold text-[#111827]">Voucher Code Generation</h3>
-              
               <div className="space-y-2">
-                <Label>Code Generation Type <span className="text-red-500">*</span></Label>
+                <Label>How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them) <span className="text-red-500">*</span></Label>
                 <RadioGroup
-                  value={codeGenerationType}
+                  value={codeGenerationType || 'bxi'}
                   onValueChange={(value) => setValue('codeGenerationType', value)}
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="BXI" id="bxi-generate" />
-                    <Label htmlFor="bxi-generate" className="cursor-pointer font-normal">
-                      BXI Will Generate Codes Automatically
-                    </Label>
+                    <RadioGroupItem value="bxi" id="bxi-generate" />
+                    <Label htmlFor="bxi-generate" className="cursor-pointer font-normal">BXI</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Upload" id="upload-codes" />
-                    <Label htmlFor="upload-codes" className="cursor-pointer font-normal">
-                      Upload Codes Now
-                    </Label>
+                    <RadioGroupItem value="self" id="upload-codes" />
+                    <Label htmlFor="upload-codes" className="cursor-pointer font-normal">Upload Now</Label>
                   </div>
                 </RadioGroup>
               </div>
 
-              {/* Code Upload */}
-              {codeGenerationType === 'Upload' && (
+              {codeGenerationType === 'self' && (
                 <div className="space-y-2">
                   <Label>Voucher Codes File <span className="text-red-500">*</span></Label>
                   <p className="text-xs text-[#6B7A99]">

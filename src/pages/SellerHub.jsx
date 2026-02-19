@@ -69,9 +69,10 @@ export default function SellerHub() {
   const allowedVouchers = getAllowedVouchers(companyType, showAdminView);
   const hasProductAccess = allowedCategories.length > 0;
   const hasVoucherAccess = allowedVouchers.length > 0;
-  const addListingPath = hasProductAccess
-    ? (isMedia ? '/media-physical' : '/add-product')
-    : hasVoucherAccess ? '/generalVoucherForm' : '/sellerhub';
+  // Match bxi-dashboard /physical: Product vs Voucher choice first (per DashboardRouter physical route)
+  const addListingPath = isMedia
+    ? '/media-physical'
+    : (hasProductAccess || hasVoucherAccess) ? '/physical' : '/sellerhub';
   const addListingLabel = hasProductAccess
     ? (isMedia ? 'Add Media' : 'Add Product')
     : 'Add Voucher';

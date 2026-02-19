@@ -15,6 +15,7 @@ import BulkUpload from './pages/BulkUpload';
 import VoucherForm from './pages/VoucherForm';
 import AddProductCategorySelect from './pages/AddProductCategorySelect';
 import MediaOnlinePhysical from './pages/MediaOnlinePhysical';
+import PhysicalDigital from './pages/PhysicalDigital';
 import { AuthGuard } from './components/AuthGuard';
 import ListingAccessGuard from './components/guards/ListingAccessGuard';
 
@@ -82,6 +83,15 @@ function App() {
               element={
                 <ListingAccessGuard kind="product">
                   <AddProductCategorySelect />
+                </ListingAccessGuard>
+              }
+            />
+            {/* Physical – Product vs Voucher choice (per bxi-dashboard /physical route) */}
+            <Route
+              path="/physical"
+              element={
+                <ListingAccessGuard kind="listing">
+                  <PhysicalDigital />
                 </ListingAccessGuard>
               }
             />
@@ -328,11 +338,12 @@ function App() {
                     </ListingAccessGuard>
                   } 
                 />
+                {/* Voucher: techinfo shows ProductInfo (price/variants); then user goes to vouchertechinfo for Voucher Information */}
                 <Route 
                   path={`/${category}/techinfo`} 
                   element={
                     <ListingAccessGuard kind="voucher" category={category}>
-                      <TechInfo category={category} />
+                      <ProductInfo category={category} />
                     </ListingAccessGuard>
                   } 
                 />
@@ -340,7 +351,7 @@ function App() {
                   path={`/${category}/techinfo/:id`} 
                   element={
                     <ListingAccessGuard kind="voucher" category={category}>
-                      <TechInfo category={category} />
+                      <ProductInfo category={category} />
                     </ListingAccessGuard>
                   } 
                 />

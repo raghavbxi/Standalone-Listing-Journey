@@ -34,6 +34,7 @@ export default function VoucherGoLive({ category }) {
     fetchProduct();
   }, [id]);
 
+  // Aligned with bxi-dashboard: voucher submit uses ProductUploadStatus 'pendingapproval' (VoucherTypeOne uploadProduct)
   const handleGoLive = async () => {
     if (!id) {
       toast.error('Product ID missing');
@@ -44,14 +45,13 @@ export default function VoucherGoLive({ category }) {
     try {
       await api.post('/product/product_mutation', {
         _id: id,
-        ProductUploadStatus: 'completed',
-        IsActive: true,
+        ProductUploadStatus: 'pendingapproval',
       });
 
-      toast.success('Voucher published successfully! 🎉');
+      toast.success('Once uploaded, changes are subject to approval.');
       setTimeout(() => {
         navigate('/sellerhub');
-      }, 1500);
+      }, 2000);
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to publish. Please try again.');
     } finally {

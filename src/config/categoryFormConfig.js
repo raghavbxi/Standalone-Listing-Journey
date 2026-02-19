@@ -384,7 +384,7 @@ export function getPrevNextStepPaths(category, stepName, pathname) {
         voucherDesign: { prev: 'hotelsgolive', next: null },
       }[stepName] || { prev: null, next: null }
     : {
-        productInfo: { prev: 'generalinformation', next: 'techinfo' },
+        productInfo: { prev: 'generalinformation', next: 'vouchertechinfo' },
         techInfo: { prev: 'techinfo', next: 'golive' },
         goLive: { prev: 'golive', next: 'voucherdesign' },
         voucherDesign: { prev: 'golive', next: null },
