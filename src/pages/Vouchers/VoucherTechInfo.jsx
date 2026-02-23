@@ -20,6 +20,8 @@ import { toast } from 'sonner';
 import api, { productApi } from '../../utils/api';
 import StateData from '../../utils/StateCityArray.json';
 import { getPrevNextStepPaths } from '../../config/categoryFormConfig';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '../../components/ui/tooltip';
+import { Info } from 'lucide-react';
 
 // Validation aligned with bxi-dashboard TechInfoTemplate: all text fields max 500 characters
 const schema = z.object({
@@ -75,6 +77,39 @@ export default function VoucherTechInfo({ category }) {
 
   const redemptionType = watch('redemptionType');
   const codeGenerationType = watch('codeGenerationType');
+  const inclusions = watch('inclusions');
+  const exclusions = watch('exclusions');
+  const termsAndConditions = watch('termsAndConditions');
+  const redemptionSteps = watch('redemptionSteps');
+  const onlineRedemptionUrl = watch('onlineRedemptionUrl');
+
+  const urlRegex = /(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_+.~#?&//=]*)/g;
+  const hasRequiredText =
+    (inclusions ?? '').trim().length > 0 &&
+    (exclusions ?? '').trim().length > 0 &&
+    (termsAndConditions ?? '').trim().length > 0 &&
+    (redemptionSteps ?? '').trim().length > 0;
+  const redemptionTypeValue = (redemptionType || 'online').toLowerCase();
+  const onlineOk =
+    redemptionTypeValue === 'offline' ||
+    (() => {
+      const url = (onlineRedemptionUrl ?? '').trim();
+      return url.length > 0 && !!url.match(urlRegex) && !url.toLowerCase().includes('bxiworld');
+    })();
+  const hasOfflineOk =
+    redemptionTypeValue === 'online' ||
+    (() => {
+      const hasAddress =
+        offlineAddress.address?.trim() &&
+        offlineAddress.area?.trim() &&
+        offlineAddress.landmark?.trim() &&
+        offlineAddress.city?.trim() &&
+        offlineAddress.state?.trim();
+      return !!hasAddress || !!storeListFile;
+    })();
+  const codeGenOk =
+    (codeGenerationType || 'bxi') !== 'self' || !!codeFile;
+  const canSubmit = hasRequiredText && onlineOk && hasOfflineOk && codeGenOk;
 
   // Fetch product data
   useEffect(() => {
@@ -222,13 +257,24 @@ export default function VoucherTechInfo({ category }) {
     <div className="min-h-screen bg-[#F8F9FA] py-8">
       <div className="form-container">
         <div className="form-section">
-          <h2 className="form-section-title">Voucher Information</h2>
-          <p className="text-sm text-[#6B7A99] mb-6">
-            Technical information: inclusions, exclusions, terms, redemption details and voucher codes (aligned with bxi-dashboard TechInfoTemplate).
-          </p>
+          <div className="flex items-center gap-2">
+          <h2 className="form-section-title">Voucher Information - {category}</h2>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                  <Info className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Voucher Information refers to the details of the voucher, including the inclusions, exclusions, terms and conditions, redemption steps and redemption type.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Inclusions – bxi StepTechInfo */}
+            {/* Inclusions */}
             <div className="space-y-2">
               <Label htmlFor="inclusions">
                 Inclusions <span className="text-red-500">*</span>
@@ -522,8 +568,8 @@ export default function VoucherTechInfo({ category }) {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting}
-                className="bg-[#C64091] hover:bg-[#A03375]"
+                disabled={isSubmitting || !canSubmit}
+                className="bg-[#C64091] hover:bg-[#A03375] disabled:opacity-50 disabled:pointer-events-none"
               >
                 {isSubmitting ? 'Saving...' : 'Save & Next'}
                 <ArrowRight className="w-4 h-4 ml-2" />

@@ -166,6 +166,10 @@ export const uploadApi = {
     api.post('product/add_Image', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
+  uploadVoucherFile: (formData) =>
+    api.post('file/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
 };
 
 // Bulk upload (BXI: publiq_bulk_upload/bulk_upload, single file field 'file')

@@ -474,7 +474,7 @@ export const GeneralInformation = ({ category }) => {
               </Label>
               <Input
                 id="productName"
-                placeholder="Enter product name"
+                placeholder={isVoucherCategory ? 'Enter Voucher Name' : 'Enter Product Name'}
                 {...register('productName', { required: 'Product name is required' })}
                 className={errors.productName ? 'border-red-500' : ''}
                 data-testid="input-product-name"
@@ -485,12 +485,12 @@ export const GeneralInformation = ({ category }) => {
             </div>
 
             {/* Subtitle – shown when config.hasSubtitle */}
-            {giConfig.hasSubtitle && isVoucherCategory ? false : true && (
-              <div className="space-y-2">
+            {giConfig.hasSubtitle &&  (
+              <div className="space-y-2 mt-4">
                 <Label htmlFor="productSubtitle">{isVoucherCategory ? 'Voucher Subtitle' : 'Product Subtitle'} <span className="text-red-500">*</span></Label>
                 <Input
                   id="productSubtitle"
-                  placeholder="Short tagline (10–75 chars)"
+                  placeholder={isVoucherCategory ? 'Enter Voucher Subtitle' : 'Enter Product Subtitle'}
                   {...register('productSubtitle', { required: giConfig.hasSubtitle, minLength: 10, maxLength: 75 })}
                   className={errors.productSubtitle ? 'border-red-500' : ''}
                 />
@@ -658,7 +658,7 @@ export const GeneralInformation = ({ category }) => {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !watch('productName') || !watch('description') || !watch('subcategory') }
+                disabled={isSubmitting || !watch('productName') || !watch('description') || !watch('subcategory') || !watch('productSubtitle') }
                 className="bg-[#C64091] hover:bg-[#A03375]"
                 data-testid="btn-save-next"
               >
