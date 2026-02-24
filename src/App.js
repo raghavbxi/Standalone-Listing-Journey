@@ -16,6 +16,7 @@ import VoucherForm from './pages/VoucherForm';
 import AddProductCategorySelect from './pages/AddProductCategorySelect';
 import MediaOnlinePhysical from './pages/MediaOnlinePhysical';
 import PhysicalDigital from './pages/PhysicalDigital';
+import EePhysical from './pages/EePhysical';
 import { AuthGuard } from './components/AuthGuard';
 import ListingAccessGuard from './components/guards/ListingAccessGuard';
 
@@ -92,6 +93,15 @@ function App() {
               element={
                 <ListingAccessGuard kind="listing">
                   <PhysicalDigital />
+                </ListingAccessGuard>
+              }
+            />
+            {/* EE Physical – Entertainment vs Events then voucher type (per bxi-dashboard /eephysical) */}
+            <Route
+              path="/eephysical"
+              element={
+                <ListingAccessGuard kind="listing">
+                  <EePhysical />
                 </ListingAccessGuard>
               }
             />
@@ -426,6 +436,7 @@ function App() {
             <Route path="/hotelsVoucher/hotelsproductinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><HotelsProductInfo category="hotelsVoucher" /></ListingAccessGuard>} />
             <Route path="/hotelsVoucher/hotelstechinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherTechInfo category="hotelsVoucher" /></ListingAccessGuard>} />
             <Route path="/hotelsVoucher/hotelsdesign/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherDesign category="hotelsVoucher" /></ListingAccessGuard>} />
+            <Route path="/hotelsVoucher/voucherdesign/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherDesign category="hotelsVoucher" /></ListingAccessGuard>} />
             <Route path="/hotelsVoucher/hotelsgolive/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherGoLive category="hotelsVoucher" /></ListingAccessGuard>} />
 
             {/* Bulk Upload Routes */}

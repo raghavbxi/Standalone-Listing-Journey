@@ -211,6 +211,10 @@ export default function PhysicalDigital() {
             <button
               type="button"
               onClick={() => {
+                if (companyType === "Entertainment & Events") {
+                  navigate("/eephysical");
+                  return;
+                }
                 setOpenView(1);
                 setSelectedVoucher(true);
                 setSelectedProduct(false);

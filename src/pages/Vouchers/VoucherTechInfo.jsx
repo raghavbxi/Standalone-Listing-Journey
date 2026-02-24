@@ -22,6 +22,7 @@ import StateData from '../../utils/StateCityArray.json';
 import { getPrevNextStepPaths } from '../../config/categoryFormConfig';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '../../components/ui/tooltip';
 import { Info } from 'lucide-react';
+import { Stepper } from '../AddProduct/AddProductSteps';
 
 // Validation aligned with bxi-dashboard TechInfoTemplate: all text fields max 500 characters
 const schema = z.object({
@@ -256,6 +257,7 @@ export default function VoucherTechInfo({ category }) {
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
       <div className="form-container">
+        <Stepper currentStep={3} completedSteps={[1, 2]} />
         <div className="form-section">
           <div className="flex items-center gap-2">
           <h2 className="form-section-title">Voucher Information - {category}</h2>

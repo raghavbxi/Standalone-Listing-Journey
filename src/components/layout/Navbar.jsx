@@ -40,7 +40,7 @@ export default function TopNavbar() {
 
       <button
         onClick={() => navigate("/marketplace")}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#C64091] border border-[#C64091] rounded-full hover:bg-[#C64091] hover:text-white transition"
+        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#C64091] border border-[#C64091] border-2 rounded-md hover:bg-[#C64091] hover:text-white transition"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Marketplace

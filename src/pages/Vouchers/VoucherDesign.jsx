@@ -26,6 +26,8 @@ import {
 } from '../../components/ui/tooltip';
 import { toast } from 'sonner';
 import api, { productApi, uploadApi } from '../../utils/api';
+import { getPrevNextStepPaths } from '../../config/categoryFormConfig';
+import { Stepper } from '../AddProduct/AddProductSteps';
 
 function dataUrlToBlob(dataUrl) {
   if (!dataUrl || typeof dataUrl !== 'string') return null;
@@ -269,9 +271,19 @@ export default function VoucherDesign({ category }) {
   const [showSpinner, setShowSpinner] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [editErrors, setEditErrors] = useState({});
 
-  const prevPath = 'vouchertechinfo';
-  const nextPath = 'vouchergolive';
+  const { prev: prevStepPath, next: nextStepPath } = getPrevNextStepPaths(category, 'voucherDesign');
+  const prevPath = prevStepPath || 'vouchertechinfo';
+  const nextPath = nextStepPath || 'vouchergolive';
+
+  /** Preview path after design upload: by voucher type (same as sellerHubNavigation view route). */
+  const getVoucherPreviewPath = useCallback((productId, voucherType) => {
+    const vt = (voucherType || '').trim();
+    if (vt.includes('Offer Specific')) return `/spacificvoucher/${productId}`;
+    if (vt.includes('Value Voucher') || vt.includes('Gift Card')) return `/valueandgiftvoucher/${productId}`;
+    return `/allvoucherpreview/${productId}`;
+  }, []);
 
   const validateDays = useCallback((val) => {
     const n = parseInt(val, 10);
@@ -288,6 +300,8 @@ export default function VoucherDesign({ category }) {
         const d = res?.data;
         if (!d) return;
         const v = d?.ProductsVariantions?.[0];
+        const digitalData = typeof localStorage !== 'undefined' ? localStorage.getItem('digitalData') : null;
+        const voucherType = digitalData === 'Offer Specific' ? 'Offer Specific' : 'Gift Card';
         setProductData({
           productName: d?.ProductName,
           productSubtitle: d?.ProductSubtitle,
@@ -299,7 +313,7 @@ export default function VoucherDesign({ category }) {
           exclusions: d?.Exclusions || '',
           termsAndConditions: d?.TermConditions || '',
           redemptionURL: d?.Link || '',
-          voucherType: 'Gift Card',
+          voucherType,
         });
         if (v?.validityOfVoucherValue) setListDays(String(v.validityOfVoucherValue));
       } catch (e) {
@@ -347,23 +361,31 @@ export default function VoucherDesign({ category }) {
       const voucherImages = uploaded.map((u) => ({ id: u.id, url: u.url, typeOfFile: u.typeOfFile }));
       await api.post('/product/product_mutation', {
         _id: id,
+        id,
         ListThisProductForAmount: listDays.trim(),
         ListThisProductForUnitOfTime: listUnit,
         VoucherImages: voucherImages,
       });
       toast.success('Voucher images uploaded successfully!');
-      navigate(`/${category}/${nextPath}/${id}`);
+      if (nextPath) {
+        navigate(`/${category}/${nextPath}/${id}`);
+      } else {
+        // Hotel and other vouchers with no next step: go to preview page (same as other vouchers)
+        const voucherType = productData?.voucherType || (typeof localStorage !== 'undefined' ? localStorage.getItem('digitalData') : null);
+        const previewPath = getVoucherPreviewPath(id, voucherType);
+        navigate(previewPath);
+      }
     } catch (err) {
       toast.error(err?.message || 'Failed to upload voucher images. Please try again.');
     } finally {
       setShowSpinner(false);
       setConfirmOpen(false);
     }
-  }, [id, listDays, listUnit, category, nextPath, navigate]);
+  }, [id, listDays, listUnit, category, nextPath, productData?.voucherType, getVoucherPreviewPath]);
 
   const handleNext = () => {
     if (!listDaysValid) {
-      toast.error('Please enter valid days (1–365)');
+      toast.error('Please enter valid days!');
       return;
     }
     if (!cardImage) {
@@ -375,9 +397,36 @@ export default function VoucherDesign({ category }) {
 
   const onConfirmNext = () => captureAndUpload();
 
+  const validateEditForm = () => {
+    const err = {};
+    const name = (productData?.productName || '').trim();
+    if (name.length < 5) err.productName = 'Product name should be at least 5 characters long';
+    else if (name.length > 25) err.productName = 'Product name should be at most 25 characters long';
+    const subtitle = (productData?.productSubtitle || '').trim();
+    if (subtitle.length < 10) err.productSubtitle = 'Product subtitle should be at least 10 characters long';
+    else if (subtitle.length > 50) err.productSubtitle = 'Product subtitle should be at most 50 characters long';
+    if (!(productData?.inclusions || '').trim()) err.inclusions = 'This field is required';
+    if (!(productData?.exclusions || '').trim()) err.exclusions = 'This field is required';
+    const validity = productData?.validityOfVoucherValue;
+    if (validity !== undefined && validity !== null && validity !== '') {
+      const n = parseInt(validity, 10);
+      if (isNaN(n) || n < 1) err.validityOfVoucherValue = 'Validity must be at least 1';
+    }
+    setEditErrors(err);
+    return Object.keys(err).length === 0;
+  };
+
+  const handleEditSave = () => {
+    if (!validateEditForm()) return;
+    setEditOpen(false);
+    setEditErrors({});
+    toast.success('Content updated');
+  };
+
   return (
     <div className="min-h-screen bg-[#EEF1F6] overflow-y-auto">
-      <div className="px-6 py-4 max-w-[1400px] mx-auto">
+      <div className="form-container px-6 py-4 max-w-[1400px] mx-auto">
+        <Stepper currentStep={4} completedSteps={[1, 2, 3]} />
         <div className="flex items-center gap-2 py-2.5">
           <h2 className="text-xl font-semibold text-[#6B7A99]">Voucher Design - {category}</h2>
           <TooltipProvider>
@@ -529,17 +578,28 @@ export default function VoucherDesign({ category }) {
             </Select>
           </div>
           {hasStartedTyping && !validateDays(listDays) && (
-            <p className="text-sm text-red-500 mt-1">Please enter valid days!</p>
+            <p className="text-sm text-red-500 mt-1">Please enter valid days! (1–365)</p>
           )}
         </div>
 
         {/* Bottom navigation */}
         <div className="flex justify-end gap-2 py-4 px-6 mt-4 bg-[#EEF1F6] border-t border-gray-200">
+          {prevPath && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate(`/${category}/${prevPath}/${id}`)}
+              className="bg-white text-[#636161] hover:bg-gray-100 border border-gray-300"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"
             onClick={() => {
-              if (window.confirm('Are you sure you want to cancel?')) navigate('/sellerhub');
+              if (window.confirm('Are you sure you want to cancel the product?')) navigate('/sellerhub');
             }}
             className="bg-white text-[#636161] hover:bg-gray-100 border border-gray-300"
           >
@@ -563,19 +623,60 @@ export default function VoucherDesign({ category }) {
         </div>
       </div>
 
-      {/* Edit Content dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="bg-[#EEF1F6] max-w-md">
+      {/* Edit Content dialog – bxi EditVoucherForm: productname 5–25, productsubtitle 10–50, inclusions/exclusions required */}
+      <Dialog open={editOpen} onOpenChange={(open) => { setEditOpen(open); if (!open) setEditErrors({}); }}>
+        <DialogContent className="bg-[#EEF1F6] max-w-md max-h-[90vh] overflow-y-auto">
           <DialogTitle>Edit Content on Voucher</DialogTitle>
           {productData && (
             <div className="space-y-4 pt-2">
               <div>
-                <Label>Product name</Label>
+                <Label>Product name (5–25 characters) *</Label>
                 <Input
                   value={productData.productName || ''}
                   onChange={(e) => setProductData((p) => ({ ...p, productName: e.target.value }))}
-                  className="mt-1 bg-white"
+                  className={`mt-1 bg-white ${editErrors.productName ? 'border-red-500' : ''}`}
+                  maxLength={25}
                 />
+                {editErrors.productName && <p className="text-xs text-red-500 mt-0.5">{editErrors.productName}</p>}
+              </div>
+              <div>
+                <Label>Product subtitle (10–50 characters) *</Label>
+                <Input
+                  value={productData.productSubtitle || ''}
+                  onChange={(e) => setProductData((p) => ({ ...p, productSubtitle: e.target.value }))}
+                  className={`mt-1 bg-white ${editErrors.productSubtitle ? 'border-red-500' : ''}`}
+                  maxLength={50}
+                />
+                {editErrors.productSubtitle && <p className="text-xs text-red-500 mt-0.5">{editErrors.productSubtitle}</p>}
+              </div>
+              <div>
+                <Label>Inclusions *</Label>
+                <Input
+                  value={productData.inclusions || ''}
+                  onChange={(e) => setProductData((p) => ({ ...p, inclusions: e.target.value }))}
+                  className={`mt-1 bg-white ${editErrors.inclusions ? 'border-red-500' : ''}`}
+                />
+                {editErrors.inclusions && <p className="text-xs text-red-500 mt-0.5">{editErrors.inclusions}</p>}
+              </div>
+              <div>
+                <Label>Exclusions *</Label>
+                <Input
+                  value={productData.exclusions || ''}
+                  onChange={(e) => setProductData((p) => ({ ...p, exclusions: e.target.value }))}
+                  className={`mt-1 bg-white ${editErrors.exclusions ? 'border-red-500' : ''}`}
+                />
+                {editErrors.exclusions && <p className="text-xs text-red-500 mt-0.5">{editErrors.exclusions}</p>}
+              </div>
+              <div>
+                <Label>Validity of voucher value (min 1)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={productData.validityOfVoucherValue ?? ''}
+                  onChange={(e) => setProductData((p) => ({ ...p, validityOfVoucherValue: e.target.value }))}
+                  className={`mt-1 bg-white ${editErrors.validityOfVoucherValue ? 'border-red-500' : ''}`}
+                />
+                {editErrors.validityOfVoucherValue && <p className="text-xs text-red-500 mt-0.5">{editErrors.validityOfVoucherValue}</p>}
               </div>
               <div>
                 <Label>Voucher type</Label>
@@ -585,6 +686,34 @@ export default function VoucherDesign({ category }) {
                   className="mt-1 bg-white"
                 />
               </div>
+              <div>
+                <Label>Price per unit</Label>
+                <Input
+                  value={productData.pricePerUnit ?? ''}
+                  onChange={(e) => setProductData((p) => ({ ...p, pricePerUnit: e.target.value }))}
+                  className="mt-1 bg-white"
+                />
+              </div>
+              <div>
+                <Label>Redemption type</Label>
+                <Input
+                  value={productData.redemptionType || ''}
+                  onChange={(e) => setProductData((p) => ({ ...p, redemptionType: e.target.value }))}
+                  className="mt-1 bg-white"
+                />
+              </div>
+              <div>
+                <Label>Redemption URL</Label>
+                <Input
+                  value={productData.redemptionURL || ''}
+                  onChange={(e) => setProductData((p) => ({ ...p, redemptionURL: e.target.value }))}
+                  className="mt-1 bg-white"
+                />
+              </div>
+              <DialogFooter className="pt-4">
+                <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                <Button className="bg-[#C64091] hover:bg-[#A03375]" onClick={handleEditSave}>Save</Button>
+              </DialogFooter>
             </div>
           )}
         </DialogContent>

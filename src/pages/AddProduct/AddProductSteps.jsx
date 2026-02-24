@@ -27,6 +27,9 @@ import {
   getSubcategoryEndpoint,
   getFeatureEndpoint,
   getPrevNextStepPaths,
+  getVoucherProductInfoConfig,
+  getValidationSchema,
+  QSR_HARDCODED_FEATURES,
 } from '../../config/categoryFormConfig';
 import {
   Tooltip,
@@ -151,8 +154,8 @@ const STEPS = [
   { id: 4, name: 'Go Live', path: 'go-live' },
 ];
 
-// Stepper Component
-const Stepper = ({ currentStep, completedSteps = [] }) => {
+// Stepper Component – exported for use in voucher pages (HotelsProductInfo, VoucherTechInfo, VoucherGoLive, VoucherDesign)
+export const Stepper = ({ currentStep, completedSteps = [] }) => {
   return (
     <div className="stepper" data-testid="add-product-stepper">
       {STEPS.map((step, index) => {
@@ -193,6 +196,7 @@ export const GeneralInformation = ({ category }) => {
   const [selectedGender, setSelectedGender] = useState('Unisex');
 
   const giConfig = getGeneralInfoConfig(category);
+  const valSchema = getValidationSchema(category, 'generalInfo');
   const isVoucherCategory = category?.endsWith?.('Voucher');
   const nextStepPath = isVoucherCategory
     ? (category === 'hotelsVoucher' ? 'hotelsproductinfo' : 'techinfo')
@@ -207,6 +211,7 @@ export const GeneralInformation = ({ category }) => {
       listingType: 'Product',
       hasRegistrationProcess: 'Yes',
       HotelStars: '5',
+      gender: '',
     }
   });
 
@@ -214,6 +219,48 @@ export const GeneralInformation = ({ category }) => {
   const selectedSubcategory = watch('subcategory');
 
   useEffect(() => {
+    // Hotel voucher: subcategory from API when "Offer Specific", else default list (per bxi-dashboard HotelsGeneralInfo)
+    if (category === 'hotelsVoucher') {
+      const digitalData = typeof localStorage !== 'undefined' ? localStorage.getItem('digitalData') : null;
+      if (digitalData === 'Offer Specific') {
+        setSubcategoriesLoading(true);
+        setGenderCategoryData([]);
+        setSelectedGenderId(null);
+        setSelectedGender('Unisex');
+        const endpoint = getSubcategoryEndpoint(category);
+        api.get(endpoint || 'hotelsub/Get_hotel_subcategory')
+          .then((res) => {
+            const raw = res?.data?.data ?? res?.data;
+            const list = Array.isArray(raw) ? raw : (raw?.data ? [].concat(raw.data) : []);
+            const options = list.map((el) => ({
+              value: el?._id ?? el?.SubcategoryType ?? el,
+              label: el?.SampleCategoryType ?? el?.SubcategoryType ?? (typeof el === 'string' ? el : String(el?._id ?? '')),
+            })).filter((o) => o.value != null && o.label != null);
+            setSubcategoryOptions(options);
+            setValue('subcategory', '');
+          })
+          .catch(() => {
+            setSubcategoryOptions([]);
+            toast.error('Unable to load hotel subcategories.');
+          })
+          .finally(() => setSubcategoriesLoading(false));
+      } else {
+        const defaultHotelSubcategories = [
+          'Value Voucher',
+          'Gift Cards',
+          'Valid on All',
+          'Valid on Limited',
+          'Others',
+        ];
+        setSubcategoryOptions(defaultHotelSubcategories.map((s) => ({ value: s, label: s })));
+        setGenderCategoryData([]);
+        setSelectedGenderId(null);
+        setSelectedGender('Unisex');
+        setValue('subcategory', '');
+      }
+      return;
+    }
+
     const endpoint = getSubcategoryEndpoint(category);
     if (!endpoint) {
       setSubcategoryOptions([]);
@@ -243,8 +290,10 @@ export const GeneralInformation = ({ category }) => {
               (item) =>
                 String(item?.SubcategoryName || '').toLowerCase() === 'unisex'
             ) || root[0];
+          const defaultGenderName = defaultGenderGroup?.SubcategoryName || 'Unisex';
           setSelectedGenderId(defaultGenderGroup?._id || null);
-          setSelectedGender(defaultGenderGroup?.SubcategoryName || 'Unisex');
+          setSelectedGender(defaultGenderName);
+          setValue('gender', defaultGenderName);
           const options = getSubcategoryOptions({
             data: [{ SubcategoryValue: defaultGenderGroup?.SubcategoryValue || [] }],
           });
@@ -271,7 +320,9 @@ export const GeneralInformation = ({ category }) => {
 
   const handleTextileGenderSelect = (genderGroup) => {
     setSelectedGenderId(genderGroup?._id || null);
-    setSelectedGender(genderGroup?.SubcategoryName || 'Unisex');
+    const name = genderGroup?.SubcategoryName || 'Unisex';
+    setSelectedGender(name);
+    setValue('gender', name, { shouldValidate: true });
     const options = getSubcategoryOptions({
       data: [{ SubcategoryValue: genderGroup?.SubcategoryValue || [] }],
     });
@@ -281,6 +332,7 @@ export const GeneralInformation = ({ category }) => {
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
+    console.log("data", data);
     try {
       let productId = id;
       const normalizedSubcategory = data.subcategory || '';
@@ -467,7 +519,7 @@ export const GeneralInformation = ({ category }) => {
           </h2>
           
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Product Name */}
+            {/* Product Name – validation from getValidationSchema (bxi parity) */}
             <div className="space-y-2">
               <Label htmlFor="productName">
                 {isVoucherCategory ? 'Voucher Name' : 'Product Name'} <span className="text-red-500">*</span>
@@ -475,7 +527,15 @@ export const GeneralInformation = ({ category }) => {
               <Input
                 id="productName"
                 placeholder={isVoucherCategory ? 'Enter Voucher Name' : 'Enter Product Name'}
-                {...register('productName', { required: 'Product name is required' })}
+                {...register('productName', (() => {
+                  const p = valSchema?.productname;
+                  if (!p) return { required: 'Product name is required' };
+                  const r = {};
+                  if (p.required) r.required = p.min ? `Product name must be at least ${p.min} characters` : 'Product name is required';
+                  if (p.min) r.minLength = { value: p.min, message: `Product name must be at least ${p.min} characters` };
+                  if (p.max) r.maxLength = { value: p.max, message: `Product name must be at most ${p.max} characters` };
+                  return r;
+                })())}
                 className={errors.productName ? 'border-red-500' : ''}
                 data-testid="input-product-name"
               />
@@ -484,14 +544,22 @@ export const GeneralInformation = ({ category }) => {
               )}
             </div>
 
-            {/* Subtitle – shown when config.hasSubtitle */}
+            {/* Subtitle – shown when config.hasSubtitle; validation from getValidationSchema */}
             {giConfig.hasSubtitle &&  (
               <div className="space-y-2 mt-4">
                 <Label htmlFor="productSubtitle">{isVoucherCategory ? 'Voucher Subtitle' : 'Product Subtitle'} <span className="text-red-500">*</span></Label>
                 <Input
                   id="productSubtitle"
                   placeholder={isVoucherCategory ? 'Enter Voucher Subtitle' : 'Enter Product Subtitle'}
-                  {...register('productSubtitle', { required: giConfig.hasSubtitle, minLength: 10, maxLength: 75 })}
+                  {...register('productSubtitle', (() => {
+                    const p = valSchema?.productsubtitle;
+                    if (!p) return { required: 'Product subtitle is required', minLength: 10, maxLength: 75 };
+                    const r = {};
+                    if (p.required) r.required = p.min ? `Product subtitle must be at least ${p.min} characters` : 'Product subtitle is required';
+                    if (p.min) r.minLength = { value: p.min, message: `Product subtitle must be at least ${p.min} characters` };
+                    if (p.max) r.maxLength = { value: p.max, message: `Product subtitle must be at most ${p.max} characters` };
+                    return r;
+                  })())}
                   className={errors.productSubtitle ? 'border-red-500' : ''}
                 />
                 {errors.productSubtitle && (
@@ -523,7 +591,8 @@ export const GeneralInformation = ({ category }) => {
             <div className="space-y-2">
               {giConfig.hasGenderSelection && genderCategoryData.length > 0 && (
                 <div className="space-y-3">
-                  <Label>Gender (Textile)</Label>
+                  <Label>Gender (Textile) <span className="text-red-500">*</span></Label>
+                  <input type="hidden" {...register('gender', { required: valSchema?.gender?.required ? 'Please select gender' : false })} />
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {genderCategoryData.map((item) => {
                       const label = item?.SubcategoryName || 'Unisex';
@@ -547,13 +616,18 @@ export const GeneralInformation = ({ category }) => {
                       );
                     })}
                   </div>
+                  {errors.gender && <p className="text-sm text-red-500">{errors.gender.message}</p>}
                 </div>
               )}
 
               <Label htmlFor="subcategory">{isVoucherCategory ? 'Voucher Subcategory' : 'Subcategory'} <span className="text-red-500">*</span></Label>
               <input
                 type="hidden"
-                {...register('subcategory', { required: 'Subcategory is required' })}
+                {...register('subcategory', (() => {
+                  const p = valSchema?.subcategory;
+                  if (!p) return { required: 'Subcategory is required' };
+                  return { required: p.required ? 'Please select a subcategory' : false };
+                })())}
               />
               <Select
                 value={selectedSubcategory || ''}
@@ -587,7 +661,7 @@ export const GeneralInformation = ({ category }) => {
               )}
             </div>
 
-            {/* Description – bxi GeneralInfoTemplate: max 1000 chars for voucher */}
+            {/* Description – validation from getValidationSchema (bxi productdescription min/max) */}
             <div className="space-y-2">
               <Label htmlFor="description">
                 {isVoucherCategory ? 'Voucher Description' : 'Description'} <span className="text-red-500">*</span>
@@ -596,10 +670,15 @@ export const GeneralInformation = ({ category }) => {
                 id="description"
                 placeholder="Describe your product..."
                 rows={5}
-                {...register('description', {
-                  required: 'Description is required',
-                  ...(isVoucherCategory && { maxLength: { value: 1000, message: 'Description cannot exceed 1000 characters' } }),
-                })}
+                {...register('description', (() => {
+                  const p = valSchema?.productdescription;
+                  if (!p) return { required: 'Description is required', maxLength: { value: 1000, message: 'Description cannot exceed 1000 characters' } };
+                  const r = {};
+                  if (p.required) r.required = p.min ? `Description must be at least ${p.min} characters` : 'Description is required';
+                  if (p.min) r.minLength = { value: p.min, message: `Description must be at least ${p.min} characters` };
+                  if (p.max) r.maxLength = { value: p.max, message: `Description cannot exceed ${p.max} characters` };
+                  return r;
+                })())}
                 className={errors.description ? 'border-red-500' : ''}
                 data-testid="input-description"
               />
@@ -611,27 +690,31 @@ export const GeneralInformation = ({ category }) => {
             {/* Mobility: Registration process radio */}
             {giConfig.hasRadioButtons && !isVoucherCategory && (
               <div className="space-y-2">
-                <Label>{giConfig.radioButtonLabel}</Label>
+                <Label>{giConfig.radioButtonLabel} <span className="text-red-500">*</span></Label>
                 <div className="flex gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" value="Yes" {...register(giConfig.radioButtonField)} className="text-[#C64091]" />
+                    <input type="radio" value="Yes" {...register(giConfig.radioButtonField, { required: valSchema?.hasRegistrationProcess?.required ? 'Please select an option' : false })} className="text-[#C64091]" />
                     <span>Yes</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" value="No" {...register(giConfig.radioButtonField)} className="text-[#C64091]" />
+                    <input type="radio" value="No" {...register(giConfig.radioButtonField, { required: valSchema?.hasRegistrationProcess?.required ? 'Please select an option' : false })} className="text-[#C64091]" />
                     <span>No</span>
                   </label>
                 </div>
+                {errors[giConfig.radioButtonField] && (
+                  <p className="text-sm text-red-500">{errors[giConfig.radioButtonField].message}</p>
+                )}
               </div>
             )}
 
-            {/* Hotels: Star rating */}
+            {/* Hotels: Star rating – validation from schema when HotelStars required */}
             {giConfig.hasStarRating && (
               <div className="space-y-2">
-                <Label>{giConfig.starRatingLabel}</Label>
+                <Label>{giConfig.starRatingLabel} <span className="text-red-500">*</span></Label>
+                <input type="hidden" {...register(giConfig.starRatingField, { required: valSchema?.HotelStars?.required ? 'Please select hotel star rating' : false })} />
                 <Select
                   defaultValue="5"
-                  onValueChange={(value) => setValue(giConfig.starRatingField, value)}
+                  onValueChange={(value) => setValue(giConfig.starRatingField, value, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select rating" />
@@ -642,6 +725,9 @@ export const GeneralInformation = ({ category }) => {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors[giConfig.starRatingField] && (
+                  <p className="text-sm text-red-500">{errors[giConfig.starRatingField].message}</p>
+                )}
               </div>
             )}
 
@@ -650,7 +736,7 @@ export const GeneralInformation = ({ category }) => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate('/sellerhub')}
+                onClick={() => navigate(category === 'eeVoucher' ? '/eephysical' : '/sellerhub')}
                 data-testid="btn-back"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -658,7 +744,7 @@ export const GeneralInformation = ({ category }) => {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !watch('productName') || !watch('description') || !watch('subcategory') || !watch('productSubtitle') }
+                disabled={isSubmitting || !watch('productName') || !watch('description') || !watch('subcategory')  }
                 className="bg-[#C64091] hover:bg-[#A03375]"
                 data-testid="btn-save-next"
               >
@@ -705,46 +791,79 @@ export const ProductInfo = ({ category }) => {
   const [manufacturingDate, setManufacturingDate] = useState(null);
   const [hasExpiryDate, setHasExpiryDate] = useState(false);
   const [expiryDate, setExpiryDate] = useState(null);
+
+  // Tags (voucher categories)
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+
+  // Airline voucher fields
+  const [fromLocation, setFromLocation] = useState('');
+  const [destinationLocation, setDestinationLocation] = useState('');
+  const [redeemedValue, setRedeemedValue] = useState('');
   
   // Mobility Registration Details (managed by react-hook-form)
 
   const piConfig = getProductInfoConfig(category);
+  const voucherPiConfig = isVoucherCategory ? getVoucherProductInfoConfig(category) : null;
+  // EE: Date of the Event only when user chose "Events" on eephysical (bxi-dashboard parity)
+  const showDateOfEvent = voucherPiConfig?.extraVariantColumn === 'dateOfEvent' && (category !== 'eeVoucher' || (typeof localStorage !== 'undefined' && localStorage.getItem('eevoucherdata') === 'event'));
   const { prev: prevStepPath, next: nextStepPath } = getPrevNextStepPaths(category, 'productInfo', location?.pathname);
   const prevPath = prevStepPath || 'general-info';
   const nextPath = nextStepPath || 'tech-info';
-  const hasSizeOptions = piConfig.sizeOptions && piConfig.sizeOptions.length > 0 && category !== 'restaurant';
+
+  const effectiveSizeOptions = isVoucherCategory
+    ? (voucherPiConfig?.sizeOptions || [])
+    : (piConfig.sizeOptions || []);
+  const hasSizeOptions = effectiveSizeOptions.length > 0 && category !== 'restaurant';
 
   const hasHsn = piConfig.commonFields?.includes?.('hsn') ?? true;
-  const hasSampleCheckbox = !category?.endsWith?.('Voucher');
-  const hasGenderInProductInfo = ['textile', 'lifestyle', 'others'].includes(category);
-  const hasProductInfoExtras = !category?.endsWith?.('Voucher');
+  const hasSampleCheckbox = !isVoucherCategory;
+  const hasGenderInProductInfo = isVoucherCategory
+    ? (voucherPiConfig?.hasGender || false)
+    : ['textile', 'lifestyle', 'others'].includes(category);
+  const hasFeatures = isVoucherCategory ? !!getFeatureEndpoint(category) : true;
+  const hasOtherCosts = true;
+  const hasLocationDetails = !isVoucherCategory;
+  const hasManufacturingDates = !isVoucherCategory;
+  const hasVariationButton = true;
   const featureEndpoint = getFeatureEndpoint(category);
   const tiConfig = getTechInfoConfig(category);
   const featureNameField = tiConfig?.featureNameField || 'SampleLifestyleFeature';
 
   useEffect(() => {
-    if (!hasProductInfoExtras || !featureEndpoint) return;
+    if (!hasFeatures || !featureEndpoint) return;
     const fetchFeatures = async () => {
       setFeaturesLoading(true);
       try {
         const res = await api.get(featureEndpoint);
-        const root = res?.data?.data ?? res?.data?.body ?? res?.data;
+        const root = res?.data?.data ?? res?.data?.body ?? res?.data ;
         const list = Array.isArray(root) ? root : root?.data ? root.data : [];
-        const opts = list
+        console.log("list", list);
+        let opts = list
           .map((item) => {
-            const label = item?.[featureNameField] || item?.name || item?.value;
+            const label = item?.[featureNameField] || item?.name || item?.value || item?.FmcgproductinfoType || item?.OtherFeature || item?.OfficesupplyFeature;
             return label ? { label, value: label } : null;
           })
           .filter(Boolean);
+        if (category === 'qsrVoucher') {
+          const hardcoded = QSR_HARDCODED_FEATURES.map((f) => ({ label: f, value: f }));
+          const existing = new Set(opts.map((o) => o.value));
+          opts = [...opts, ...hardcoded.filter((h) => !existing.has(h.value))];
+        }
+        opts.sort((a, b) => a.label.localeCompare(b.label));
         setFeatureOptions(opts);
       } catch {
-        setFeatureOptions([]);
+        if (category === 'qsrVoucher') {
+          setFeatureOptions(QSR_HARDCODED_FEATURES.map((f) => ({ label: f, value: f })));
+        } else {
+          setFeatureOptions([]);
+        }
       } finally {
         setFeaturesLoading(false);
       }
     };
     fetchFeatures();
-  }, [category, hasProductInfoExtras, featureEndpoint, featureNameField]);
+  }, [category, hasFeatures, featureEndpoint, featureNameField]);
 
   useEffect(() => {
     if (locationDetails.state && StateData?.length) {
@@ -806,7 +925,12 @@ export const ProductInfo = ({ category }) => {
       toast.error('This feature is already added');
       return;
     }
-    setFeatureList((prev) => [...prev, { name: featureToAdd, description: featureDescription?.trim() || featureToAdd }]);
+    const desc = featureDescription?.trim() || featureToAdd;
+    if (desc.length > 75) {
+      toast.error('Feature description cannot exceed 75 characters');
+      return;
+    }
+    setFeatureList((prev) => [...prev, { name: featureToAdd, description: desc }]);
     setSelectedFeature('');
     setFeatureDescription('');
   };
@@ -823,6 +947,11 @@ export const ProductInfo = ({ category }) => {
     }
     if (!otherCostForm.ReasonOfCost?.trim()) {
       toast.error('Reason of cost is required');
+      return;
+    }
+    const reason = otherCostForm.ReasonOfCost?.trim() || '';
+    if (reason.length > 75) {
+      toast.error('Reason of cost cannot exceed 75 characters');
       return;
     }
     const hs = String(otherCostForm.AdCostHSN || '').trim();
@@ -918,6 +1047,7 @@ export const ProductInfo = ({ category }) => {
       toast.error('Min Order Quantity cannot be greater than Max Order Quantity');
       return;
     }
+    const extraCol = voucherPiConfig?.extraVariantColumn;
     const variation = {
       PricePerUnit: price,
       DiscountedPrice: discountedPrice,
@@ -926,14 +1056,22 @@ export const ProductInfo = ({ category }) => {
       GST: String(d.gst || '18'),
       HSN: d.hsn || '',
       ProductSize: productSize,
-      ProductColor: d.productColor || '#ffffff',
+      ProductColor: extraCol === 'color' ? (d.productColor || '#ffffff') : (d.productColor || '#ffffff'),
       ProductIdType: d.productIdType || `SKU-${Date.now()}`,
       Length: d.length || '',
       Width: d.width || '',
       Height: d.height || '',
       Weight: d.weight || '',
       MeasurementUnit: measurementUnit,
+      TotalAvailableQty: parseInt(d.totalAvailableQty, 10) || 1,
       ...(shoeSize && { ShoeSize: shoeSize }),
+      ...(isVoucherCategory && {
+        validityOfVoucherValue: d.validityOfVoucherValue ?? 12,
+        validityOfVoucherUnit: d.validityOfVoucherUnit || 'Months',
+      }),
+      ...(extraCol === 'flavor' && { Flavor: d.flavor || '' }),
+      ...(extraCol === 'offeringType' && { OfferingType: d.offeringType || '' }),
+      ...(extraCol === 'dateOfEvent' && (category !== 'eeVoucher' || (typeof localStorage !== 'undefined' && localStorage.getItem('eevoucherdata') === 'event')) && { DateOfTheEvent: d.dateOfEvent || '' }),
     };
     setProductsVariations((prev) => [...prev, variation]);
     setValue('price', '');
@@ -948,17 +1086,15 @@ export const ProductInfo = ({ category }) => {
     setValue('shoeSize', '');
     setValue('minOrderQty', '1');
     setValue('maxOrderQty', '100');
+    setValue('totalAvailableQty', '1');
     setValue('gst', '');
     setValue('hsn', '');
     setValue('productSize', '');
-    setValue('productIdType', '');
-    setValue('length', '');
-    setValue('width', '');
-    setValue('height', '');
-    setValue('weight', '');
     setValue('measurementUnit', '');
-    setValue('shoeSize', '');
-    toast.success('Product variation added');
+    setValue('flavor', '');
+    setValue('offeringType', '');
+    setValue('dateOfEvent', '');
+    toast.success('Variation added');
   };
 
   const handleRemoveVariation = (idx) => {
@@ -982,9 +1118,10 @@ export const ProductInfo = ({ category }) => {
       discountedPrice: '',
       minOrderQty: '1',
       maxOrderQty: '100',
+      totalAvailableQty: '1',
       gst: '18',
       hsn: '',
-      selectedSize: piConfig.defaultSize || '',
+      selectedSize: isVoucherCategory ? '' : (piConfig.defaultSize || ''),
       sizeValue: '',
       sizeUnit: 'cm',
       productForm: 'Dry',
@@ -1004,6 +1141,11 @@ export const ProductInfo = ({ category }) => {
       registrationDetails: '',
       insuranceDetails: '',
       taxesDetails: '',
+      validityOfVoucherValue: '12',
+      validityOfVoucherUnit: 'Months',
+      flavor: '',
+      offeringType: '',
+      dateOfEvent: '',
     }
   });
 
@@ -1055,7 +1197,13 @@ export const ProductInfo = ({ category }) => {
           setValue('taxesDetails', data.TaxesDetails || '');
         }
 
-        // Handle category specific initializations
+        if (data.ProductTags && Array.isArray(data.ProductTags)) {
+          setTags(data.ProductTags);
+        }
+        if (data.fromLocation) setFromLocation(data.fromLocation);
+        if (data.destinationLocation) setDestinationLocation(data.destinationLocation);
+        if (data.redeemedValue) setRedeemedValue(data.redeemedValue);
+
         if (data.Gender) {
           setValue('gender', data.Gender);
         }
@@ -1094,17 +1242,16 @@ export const ProductInfo = ({ category }) => {
       toast.error('Product ID missing. Please start from General Information.');
       return;
     }
-    const isVoucher = category?.endsWith?.('Voucher');
-    if (productsVariations.length === 0 && !isVoucher) {
-      toast.error('Please add at least one product variation using "Proceed to Add"');
+    if (productsVariations.length === 0) {
+      toast.error('Please add at least one variation using "Proceed to Add"');
       return;
     }
-    if (hasProductInfoExtras && featureList.length < PRODUCT_FEATURE_MIN) {
-      toast.error(`Minimum ${PRODUCT_FEATURE_MIN} product features required. Add ${PRODUCT_FEATURE_MIN - featureList.length} more.`);
+    if (hasFeatures && featureList.length < PRODUCT_FEATURE_MIN) {
+      toast.error(`Minimum ${PRODUCT_FEATURE_MIN} features required. Add ${PRODUCT_FEATURE_MIN - featureList.length} more.`);
       return;
     }
-    if (hasProductInfoExtras && featureList.length > PRODUCT_FEATURE_MAX) {
-      toast.error(`Maximum ${PRODUCT_FEATURE_MAX} product features allowed.`);
+    if (hasFeatures && featureList.length > PRODUCT_FEATURE_MAX) {
+      toast.error(`Maximum ${PRODUCT_FEATURE_MAX} features allowed.`);
       return;
     }
     
@@ -1126,44 +1273,10 @@ export const ProductInfo = ({ category }) => {
     
     setIsSubmitting(true);
     try {
-      let variants = productsVariations;
-      if (variants.length === 0 && isVoucher) {
-        const d = getValues();
-        const price = parseFloat(String(d.price || 0).replace(/,/g, '')) || 0;
-        const discountedPrice = parseFloat(String(d.discountedPrice || 0).replace(/,/g, '')) || price;
-        
-        if (price <= 0) {
-          toast.error('MRP is required and must be greater than 0');
-          return;
-        }
-
-        // Variant shape aligned with bxi-dashboard (VoucherTypeOne/Two: validityOfVoucherValue, validityOfVoucherUnit)
-        variants = [{
-          PricePerUnit: price,
-          DiscountedPrice: discountedPrice,
-          MinOrderQuantity: parseInt(d.minOrderQty, 10) || 1,
-          MaxOrderQuantity: parseInt(d.maxOrderQty, 10) || 100,
-          GST: String(d.gst || '18'),
-          HSN: d.hsn || '',
-          ProductSize: d.selectedSize || '',
-          ProductColor: d.productColor || '#ffffff',
-          ProductIdType: d.productIdType || `SKU-${Date.now()}`,
-          Length: d.length || '',
-          Width: d.width || '',
-          Height: d.height || '',
-          Weight: d.weight || '',
-          validityOfVoucherValue: d.validityOfVoucherValue ?? 12,
-          validityOfVoucherUnit: d.validityOfVoucherUnit || 'Months',
-        }];
-        
-        if (variants[0].DiscountedPrice > variants[0].PricePerUnit) {
-           toast.error('Discounted MRP cannot be greater than MRP');
-           return;
-        }
-      }
+      const variants = productsVariations;
       const payload = {
         _id: id,
-        ProductUploadStatus: hasProductInfoExtras ? 'productinformation' : 'technicalinformation',
+        ProductUploadStatus: isVoucherCategory ? 'technicalinformation' : 'productinformation',
         ProductsVariantions: variants,
         IsSample: !!data.isSample,
         ...(data.isSample && {
@@ -1171,26 +1284,35 @@ export const ProductInfo = ({ category }) => {
           PriceOfSample: parseFloat(String(data.priceOfSample || 0).replace(/,/g, '')) || 0,
         }),
         ...(hasGenderInProductInfo && { Gender: data.gender, gender: data.gender }),
-        ...(hasProductInfoExtras && {
-          LocationDetails: locationDetails,
-          OtherCost: otherCosts,
-          ProductFeatures: featureList,
+        ...(hasFeatures && { ProductFeatures: featureList }),
+        ...(hasOtherCosts && { OtherCost: otherCosts }),
+        ...(hasLocationDetails && { LocationDetails: locationDetails }),
+        ...(isVoucherCategory && tags.length > 0 && { ProductTags: tags }),
+        ...(category === 'airlineVoucher' && {
+          fromLocation,
+          destinationLocation,
+          redeemedValue,
         }),
-        // Manufacturing & Expiry Dates
         ...(manufacturingDate && { ManufacturingDate: format(manufacturingDate, 'yyyy-MM-dd') }),
         ...(expiryDate && { ExpiryDate: format(expiryDate, 'yyyy-MM-dd') }),
-        // FMCG Product Form
         ...(category === 'fmcg' && data.productForm && { ProductForm: data.productForm }),
-        // Mobility Registration Details
         ...(category === 'mobility' && productData?.HasRegistrationProcess === 'Yes' && {
           RegistrationDetails: data.registrationDetails || '',
           InsuranceDetails: data.insuranceDetails || '',
           TaxesDetails: data.taxesDetails || '',
         }),
       };
-      console.log("payload in try block before api call",payload);
-      const response = await productApi.updateProduct(payload);
-      console.log("response in try block after api call",response);
+
+      if (isVoucherCategory) {
+        const voucherPayload = {
+          ...payload,
+          id: id,
+          ProductUploadStatus: 'productinformation',
+        };
+        await productApi.productMutation(voucherPayload);
+      } else {
+        await productApi.updateProduct(payload);
+      }
       toast.success('Product information saved!');
       navigate(`/${category}/${nextPath}/${id}`);
     } catch (error) {
@@ -1283,9 +1405,9 @@ export const ProductInfo = ({ category }) => {
             {/* Dimensions/Description – as clickable cards */}
             {hasSizeOptions && (
               <div className="space-y-2">
-                <Label>Select what best suits your product Dimensions/Description?</Label>
+                <Label>Select what best suits your {isVoucherCategory ? 'voucher' : 'product'} Dimensions/Description?</Label>
                 <div className="flex flex-wrap gap-2">
-                  {piConfig.sizeOptions.map((opt) => (
+                  {effectiveSizeOptions.map((opt) => (
                     <Button
                       key={opt}
                       type="button"
@@ -1416,8 +1538,8 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* Product ID / SKU – when config hasProductId */}
-            {piConfig.hasProductId && (
+            {/* Product ID / SKU – when config hasProductId (not for vouchers) */}
+            {piConfig.hasProductId && !isVoucherCategory && (
               <div className="space-y-2">
                 <Label htmlFor="productIdType">Product Id Type <span className="text-red-500">*</span></Label>
                 <Input
@@ -1428,8 +1550,8 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* Color picker – when config hasColorPicker */}
-            {piConfig.hasColorPicker && (
+            {/* Color picker – when config hasColorPicker (or voucher with color extra column) */}
+            {(isVoucherCategory ? voucherPiConfig?.extraVariantColumn === 'color' : piConfig.hasColorPicker) && (
               <div className="space-y-2">
                 <Label>Color <span className="text-red-500">*</span></Label>
                 <div className="flex gap-3 items-center">
@@ -1455,8 +1577,8 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* FMCG: Dry/Wet form selection */}
-            {piConfig.hasFormSelection && (
+            {/* FMCG: Dry/Wet form selection (not for vouchers) */}
+            {piConfig.hasFormSelection && !isVoucherCategory && (
               <div className="space-y-2">
                 <Label>Product Form</Label>
                 <Select
@@ -1475,7 +1597,7 @@ export const ProductInfo = ({ category }) => {
             )}
 
             {/* Manufacturing & Expiry Dates – for electronics, fmcg, officesupply, mobility, restaurant, others */}
-            {!category?.endsWith?.('Voucher') && ['electronics', 'fmcg', 'officesupply', 'mobility', 'restaurant', 'others'].includes(category) && (
+            {hasManufacturingDates && ['electronics', 'fmcg', 'officesupply', 'mobility', 'restaurant', 'others'].includes(category) && (
               <div className="space-y-4 pt-4">
                 <h3 className="text-base font-semibold text-[#111827]">Product Dates</h3>
                 
@@ -1801,125 +1923,213 @@ export const ProductInfo = ({ category }) => {
                 )}
               </div>
             )}
+            {/* Voucher extra fields: Total Available Qty + Validity */}
+            {isVoucherCategory  && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="totalAvailableQty">Total Available Quantity <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="totalAvailableQty"
+                    type="number"
+                    placeholder="1"
+                    {...register('totalAvailableQty', { min: 1 })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Validity of Voucher</Label>
+                  <Select
+                    value={watch('validityOfVoucherValue')}
+                    onValueChange={(v) => setValue('validityOfVoucherValue', v)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select validity" /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 18 }, (_, i) => i + 1).map((n) => (
+                        <SelectItem key={n} value={String(n)}>{n} Month{n > 1 ? 's' : ''}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
 
-            {/* Add Product Variation */}
-            {!category?.endsWith?.('Voucher') && (
-              <div className="space-y-4 pt-4">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleAddVariation}
-                  className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3]"
-                  data-testid="btn-add-variation"
-                >
-                  Proceed to Add
-                </Button>
-                {productsVariations.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-3">No variations added yet</p>
-                )}
-                {productsVariations.length > 0 && (
-                  <div className="mt-4 overflow-x-auto rounded-md border border-[#E5E8EB]">
-                    <table className="w-full border-collapse bg-white text-sm">
-                      <thead className="bg-[#F9FAFB] text-[#374151]">
-                        <tr>
-                          <th className="px-3 py-2 text-center font-medium">Size</th>
-                          <th className="px-3 py-2 text-center font-medium">Color</th>
-                          <th className="px-3 py-2 text-center font-medium">HSN</th>
-                          <th className="px-3 py-2 text-center font-medium">GST</th>
-                          <th className="px-3 py-2 text-center font-medium">Product ID</th>
-                          <th className="px-3 py-2 text-center font-medium">MRP</th>
-                          <th className="px-3 py-2 text-center font-medium">Disc. MRP</th>
-                          <th className="px-3 py-2 text-center font-medium">Min</th>
-                          <th className="px-3 py-2 text-center font-medium">Max</th>
-                          <th className="px-3 py-2 text-center font-medium">Action</th>
-                        </tr>
-                      </thead>
+            {/* Voucher extra variant column: Flavor (FMCG) */}
+            {voucherPiConfig?.extraVariantColumn === 'flavor' && (
+              <div className="space-y-2">
+                <Label htmlFor="flavor">Flavor</Label>
+                <Input id="flavor" placeholder="e.g. Chocolate" {...register('flavor')} />
+              </div>
+            )}
 
-                      <tbody className="text-center">
-                        {productsVariations.map((v, idx) => (
-                          <tr
-                            key={v.ProductIdType || idx}
-                            className="border-t border-[#E5E8EB] hover:bg-[#F9FAFB]"
-                          >
-                            {/* Size */}
-                            <td className="px-3 py-2">
-                              {v.ShoeSize
-                                ? `${v.ShoeSize} (${v.MeasurementUnit || ''})`
-                                : v.ProductSize || '—'}
-                            </td>
+            {/* Voucher extra variant column: Offering Type (QSR) */}
+            {voucherPiConfig?.extraVariantColumn === 'offeringType' && (
+              <div className="space-y-2">
+                <Label htmlFor="offeringType">Offering Type</Label>
+                <Input id="offeringType" placeholder="e.g. Single Room, Buffet" {...register('offeringType')} />
+              </div>
+            )}
 
-                            {/* Color */}
-                            <td className="px-3 py-2">
-                              {v.ProductColor ? (
-                                <div className="flex items-center justify-center gap-2">
-                                  <span
-                                    className="w-3 h-3 rounded-full border border-[#E5E8EB]"
-                                    style={{ backgroundColor: v.ProductColor }}
-                                  />
-                                  <span>{v.ProductColor}</span>
-                                </div>
-                              ) : (
-                                '—'
-                              )}
-                            </td>
+            {/* Voucher extra variant column: Date of Event (EE Events only, per bxi) */}
+            {showDateOfEvent && (
+              <div className="space-y-2">
+                <Label htmlFor="dateOfEvent">Date of the Event</Label>
+                <Input id="dateOfEvent" type="date" {...register('dateOfEvent')} />
+              </div>
+            )}
 
-                            {/* HSN */}
-                            <td className="px-3 py-2">
-                              {v.HSN || '—'}
-                            </td>
-
-                            {/* GST */}
-                            <td className="px-3 py-2">
-                              {v.GST ? `${v.GST}%` : '—'}
-                            </td>
-
-                            {/* Product ID */}
-                            <td className="px-3 py-2">
-                              {v.ProductIdType || '—'}
-                            </td>
-
-                            {/* MRP */}
-                            <td className="px-3 py-2 font-medium">
-                              {v.PricePerUnit
-                                ? `₹${Number(v.PricePerUnit).toLocaleString()}`
-                                : '—'}
-                            </td>
-
-                            {/* Discounted MRP */}
-                            <td className="px-3 py-2 font-medium">
-                              {v.DiscountedPrice
-                                ? `₹${Number(v.DiscountedPrice).toLocaleString()}`
-                                : '—'}
-                            </td>
-
-                            {/* Min */}
-                            <td className="px-3 py-2">
-                              {v.MinOrderQuantity ?? '—'}
-                            </td>
-
-                            {/* Max */}
-                            <td className="px-3 py-2">
-                              {v.MaxOrderQuantity ?? '—'}
-                            </td>
-
-                            {/* Remove */}
-                            <td className="px-3 py-2 text-center">
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveVariation(idx)}
-                                className="text-[#6B7A99] hover:text-[#C64091] p-1"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+            {/* Airline Voucher: Airport selectors */}
+            {voucherPiConfig?.hasAirportSelectors && (
+              <div className="space-y-4 pt-2">
+                <h3 className="text-base font-semibold text-[#111827]">Route Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>From (Origin) <span className="text-red-500">*</span></Label>
+                    <Input
+                      placeholder="e.g. Mumbai (BOM)"
+                      value={fromLocation}
+                      onChange={(e) => setFromLocation(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Destination <span className="text-red-500">*</span></Label>
+                    <Input
+                      placeholder="e.g. Delhi (DEL)"
+                      value={destinationLocation}
+                      onChange={(e) => setDestinationLocation(e.target.value)}
+                    />
+                  </div>
+                </div>
+                {voucherPiConfig?.hasRedeemedValue && (
+                  <div className="space-y-2">
+                    <Label>Redeemed Value</Label>
+                    <div className="flex gap-4">
+                      {['Domestic', 'International', 'Both'].map((opt) => (
+                        <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="redeemedValue"
+                            value={opt}
+                            checked={redeemedValue === opt}
+                            onChange={() => setRedeemedValue(opt)}
+                            className="w-4 h-4 text-[#C64091] focus:ring-[#C64091]"
+                          />
+                          <span className="text-sm">{opt}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
             )}
+
+            {/* Add Variation */}
+            <div className="space-y-4 pt-4">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleAddVariation}
+                className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3]"
+                data-testid="btn-add-variation"
+              >
+                Proceed to Add
+              </Button>
+              {productsVariations.length === 0 && (
+                <p className="text-sm text-gray-500 mt-3">No variations added yet</p>
+              )}
+              {productsVariations.length > 0 && (
+                <div className="mt-4 overflow-x-auto rounded-md border border-[#E5E8EB]">
+                  <table className="w-full border-collapse bg-white text-sm">
+                    <thead className="bg-[#F9FAFB] text-[#374151]">
+                      <tr>
+                        {hasSizeOptions && <th className="px-3 py-2 text-center font-medium">Size</th>}
+                        {voucherPiConfig?.extraVariantColumn === 'color' && <th className="px-3 py-2 text-center font-medium">Color</th>}
+                        {voucherPiConfig?.extraVariantColumn === 'flavor' && <th className="px-3 py-2 text-center font-medium">Flavor</th>}
+                        {voucherPiConfig?.extraVariantColumn === 'offeringType' && <th className="px-3 py-2 text-center font-medium">Offering Type</th>}
+                        {showDateOfEvent && <th className="px-3 py-2 text-center font-medium">Event Date</th>}
+                        {!isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Size</th>}
+                        {!isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Color</th>}
+                        <th className="px-3 py-2 text-center font-medium">HSN</th>
+                        <th className="px-3 py-2 text-center font-medium">GST</th>
+                        <th className="px-3 py-2 text-center font-medium">MRP</th>
+                        <th className="px-3 py-2 text-center font-medium">Disc. MRP</th>
+                        {isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Qty</th>}
+                        <th className="px-3 py-2 text-center font-medium">Min</th>
+                        <th className="px-3 py-2 text-center font-medium">Max</th>
+                        {isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Validity</th>}
+                        {!isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Product ID</th>}
+                        <th className="px-3 py-2 text-center font-medium">Action</th>
+                      </tr>
+                    </thead>
+
+                    <tbody className="text-center">
+                      {productsVariations.map((v, idx) => (
+                        <tr
+                          key={v.ProductIdType || idx}
+                          className="border-t border-[#E5E8EB] hover:bg-[#F9FAFB]"
+                        >
+                          {hasSizeOptions && (
+                            <td className="px-3 py-2">
+                              {v.ShoeSize ? `${v.ShoeSize} (${v.MeasurementUnit || ''})` : v.ProductSize || '—'}
+                            </td>
+                          )}
+                          {voucherPiConfig?.extraVariantColumn === 'color' && (
+                            <td className="px-3 py-2">
+                              {v.ProductColor ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <span className="w-3 h-3 rounded-full border border-[#E5E8EB]" style={{ backgroundColor: v.ProductColor }} />
+                                  <span>{v.ProductColor}</span>
+                                </div>
+                              ) : '—'}
+                            </td>
+                          )}
+                          {voucherPiConfig?.extraVariantColumn === 'flavor' && (
+                            <td className="px-3 py-2">{v.Flavor || '—'}</td>
+                          )}
+                          {voucherPiConfig?.extraVariantColumn === 'offeringType' && (
+                            <td className="px-3 py-2">{v.OfferingType || '—'}</td>
+                          )}
+                          {showDateOfEvent && (
+                            <td className="px-3 py-2">{v.DateOfTheEvent || '—'}</td>
+                          )}
+                          {!isVoucherCategory && (
+                            <td className="px-3 py-2">
+                              {v.ShoeSize ? `${v.ShoeSize} (${v.MeasurementUnit || ''})` : v.ProductSize || '—'}
+                            </td>
+                          )}
+                          {!isVoucherCategory && (
+                            <td className="px-3 py-2">
+                              {v.ProductColor ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <span className="w-3 h-3 rounded-full border border-[#E5E8EB]" style={{ backgroundColor: v.ProductColor }} />
+                                  <span>{v.ProductColor}</span>
+                                </div>
+                              ) : '—'}
+                            </td>
+                          )}
+                          <td className="px-3 py-2">{v.HSN || '—'}</td>
+                          <td className="px-3 py-2">{v.GST ? `${v.GST}%` : '—'}</td>
+                          <td className="px-3 py-2 font-medium">{v.PricePerUnit ? `₹${Number(v.PricePerUnit).toLocaleString()}` : '—'}</td>
+                          <td className="px-3 py-2 font-medium">{v.DiscountedPrice ? `₹${Number(v.DiscountedPrice).toLocaleString()}` : '—'}</td>
+                          {isVoucherCategory && <td className="px-3 py-2">{v.TotalAvailableQty ?? '—'}</td>}
+                          <td className="px-3 py-2">{v.MinOrderQuantity ?? '—'}</td>
+                          <td className="px-3 py-2">{v.MaxOrderQuantity ?? '—'}</td>
+                          {isVoucherCategory && <td className="px-3 py-2">{v.validityOfVoucherValue ? `${v.validityOfVoucherValue} Mo` : '—'}</td>}
+                          {!isVoucherCategory && <td className="px-3 py-2">{v.ProductIdType || '—'}</td>}
+                          <td className="px-3 py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveVariation(idx)}
+                              className="text-[#6B7A99] hover:text-[#C64091] p-1"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
 
             {/* Mobility Registration & Compliance Details – only when hasRegistrationProcess === 'Yes' */}
             {category === 'mobility' && productData?.HasRegistrationProcess === 'Yes' && (
@@ -2010,7 +2220,7 @@ export const ProductInfo = ({ category }) => {
             )}
 
             {/* Product Pickup Location */}
-            {hasProductInfoExtras && (
+            {hasLocationDetails && (
             <>
             <Divider/>
               <div className="space-y-4 pt-4">
@@ -2088,7 +2298,7 @@ export const ProductInfo = ({ category }) => {
 
             <Divider/>
             {/* Additional Cost */}
-            {hasProductInfoExtras && (
+            {hasOtherCosts && (
               <div className="space-y-4 pt-4 ">
                 <h3 className="text-base font-semibold text-[#111827]">
                   Additional Cost <span className="text-sm font-normal text-[#6B7A99]">(Additional cost is not mandatory)</span>
@@ -2234,9 +2444,73 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
+            {/* Tags – voucher categories */}
+            {isVoucherCategory && (
+              <>
+              <Divider/>
+              <div className="space-y-4 pt-4">
+                <h3 className="text-base font-semibold text-[#111827]">
+                  Tags <span className="text-sm font-normal text-[#6B7A99]">(Keywords that improve search visibility)</span> <span className="text-red-500">*</span>
+                </h3>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter a tag (max 15 chars)"
+                    maxLength={15}
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const t = tagInput.trim();
+                        if (t && !tags.includes(t)) {
+                          setTags((prev) => [...prev, t]);
+                          setTagInput('');
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      const t = tagInput.trim();
+                      if (t && !tags.includes(t)) {
+                        setTags((prev) => [...prev, t]);
+                        setTagInput('');
+                      }
+                    }}
+                    disabled={!tagInput.trim() || tags.includes(tagInput.trim())}
+                  >
+                    <Tag className="w-4 h-4 mr-1" /> Add
+                  </Button>
+                </div>
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                  {tags.map((t, i) => (
+                    <div
+                      key={i}
+                      className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#FCE7F3] to-[#FDE2F2] text-[#9D174D] text-sm font-medium border border-[#F9A8D4] shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.03]" >
+                      <span className="truncate max-w-[140px]">{t}</span>
+                
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTags((prev) => prev.filter((_, idx) => idx !== i))
+                        }
+                        className="flex items-center justify-center w-5 h-5 rounded-full bg-white/60 text-[#C64091] transition-all duration-200 hover:bg-red-100 hover:text-red-600" >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                )}
+              </div>
+              </>
+            )}
+
             <Divider/>
-            {/* Product Features – always show for non-voucher categories */}
-            {hasProductInfoExtras && (
+            {/* Product Features */}
+            {hasFeatures && (
             <div className="space-y-4 pt-4">
               {/* Header */}
               <div>
@@ -2297,8 +2571,9 @@ export const ProductInfo = ({ category }) => {
                     Feature Description *
                   </Label>
                   <Input
-                    ref={descriptionRef}  
-                    placeholder="Eg. Smart watch (Type in two - three words)"
+                    ref={descriptionRef}
+                    placeholder="Eg. Smart watch (max 75 characters)"
+                    maxLength={75}
                     value={featureDescription}
                     onChange={(e) => setFeatureDescription(e.target.value)}
                   />
@@ -2385,8 +2660,8 @@ export const ProductInfo = ({ category }) => {
                 type="submit"
                 disabled={
                   isSubmitting || 
-                  (!category?.endsWith?.('Voucher') && productsVariations.length === 0) || 
-                  (hasProductInfoExtras && featureList.length < PRODUCT_FEATURE_MIN) ||
+                  productsVariations.length === 0 || 
+                  (hasFeatures && featureList.length < PRODUCT_FEATURE_MIN) ||
                   (category === 'mobility' && productData?.HasRegistrationProcess === 'Yes' && (
                     !watch('registrationDetails')?.trim() || 
                     !watch('insuranceDetails')?.trim() || 
@@ -3301,4 +3576,5 @@ export const GoLive = ({ category }) => {
   );
 };
 
-export default { GeneralInformation, ProductInfo, TechInfo, GoLive };
+export { STEPS };
+export default { GeneralInformation, ProductInfo, TechInfo, GoLive, Stepper };
