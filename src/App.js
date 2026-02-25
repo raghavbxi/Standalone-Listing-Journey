@@ -24,6 +24,9 @@ import ListingAccessGuard from './components/guards/ListingAccessGuard';
 import MediaOnlineGeneralInfo from './pages/MediaOnline/MediaGeneralInfo';
 import MediaMultiplexProductInfo from './pages/MediaOnline/MediaMultiplexProductInfo';
 import MediaMultiplexTechInfo from './pages/MediaOnline/MediaMultiplexTechInfo';
+import DigitalScreensProductInfo from './pages/MediaOnline/DigitalScreensProductInfo';
+import DigitalScreensTechInfo from './pages/MediaOnline/DigitalScreensTechInfo';
+import DigitalScreensGoLive from './pages/MediaOnline/DigitalScreensGoLive';
 
 // Media Offline Components
 import MediaOfflineGeneralInfo from './pages/MediaOffline/GeneralInformation';
@@ -296,9 +299,9 @@ function App() {
             {/* These routes use specialized components for complex media flows */}
             <Route path="/mediaonline/mediaonlinemultiplexproductinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><MediaMultiplexProductInfo /></ListingAccessGuard>} />
             <Route path="/mediaonline/mediamultiplextechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><MediaMultiplexTechInfo /></ListingAccessGuard>} />
-            <Route path="/mediaonline/mediaonlinedigitalscreensinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><ProductInfo category="mediaonline" /></ListingAccessGuard>} />
-            <Route path="/mediaonline/mediaonlinedigitalscreenstechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><TechInfo category="mediaonline" /></ListingAccessGuard>} />
-            <Route path="/mediaonline/digitalscreensgolive/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><GoLive category="mediaonline" /></ListingAccessGuard>} />
+            <Route path="/mediaonline/mediaonlinedigitalscreensinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><DigitalScreensProductInfo /></ListingAccessGuard>} />
+            <Route path="/mediaonline/mediaonlinedigitalscreenstechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><DigitalScreensTechInfo /></ListingAccessGuard>} />
+            <Route path="/mediaonline/digitalscreensgolive/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><DigitalScreensGoLive /></ListingAccessGuard>} />
             <Route path="/mediaoffline/mediaofflinehoardinginfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingProductInfo /></ListingAccessGuard>} />
             <Route path="/mediaoffline/mediaofflinehoardingtechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingTechInfo /></ListingAccessGuard>} />
             <Route path="/mediaoffline/hoardingsgolive/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingsGoLive /></ListingAccessGuard>} />
