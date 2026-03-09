@@ -15,6 +15,8 @@ import BulkUpload from './pages/BulkUpload';
 import VoucherForm from './pages/VoucherForm';
 import AddProductCategorySelect from './pages/AddProductCategorySelect';
 import MediaOnlinePhysical from './pages/MediaOnlinePhysical';
+import PhysicalDigital from './pages/PhysicalDigital';
+import EePhysical from './pages/EePhysical';
 import { AuthGuard } from './components/AuthGuard';
 import ListingAccessGuard from './components/guards/ListingAccessGuard';
 
@@ -22,6 +24,9 @@ import ListingAccessGuard from './components/guards/ListingAccessGuard';
 import MediaOnlineGeneralInfo from './pages/MediaOnline/MediaGeneralInfo';
 import MediaMultiplexProductInfo from './pages/MediaOnline/MediaMultiplexProductInfo';
 import MediaMultiplexTechInfo from './pages/MediaOnline/MediaMultiplexTechInfo';
+import DigitalScreensProductInfo from './pages/MediaOnline/DigitalScreensProductInfo';
+import DigitalScreensTechInfo from './pages/MediaOnline/DigitalScreensTechInfo';
+import DigitalScreensGoLive from './pages/MediaOnline/DigitalScreensGoLive';
 
 // Media Offline Components
 import MediaOfflineGeneralInfo from './pages/MediaOffline/GeneralInformation';
@@ -82,6 +87,24 @@ function App() {
               element={
                 <ListingAccessGuard kind="product">
                   <AddProductCategorySelect />
+                </ListingAccessGuard>
+              }
+            />
+            {/* Physical – Product vs Voucher choice (per bxi-dashboard /physical route) */}
+            <Route
+              path="/physical"
+              element={
+                <ListingAccessGuard kind="listing">
+                  <PhysicalDigital />
+                </ListingAccessGuard>
+              }
+            />
+            {/* EE Physical – Entertainment vs Events then voucher type (per bxi-dashboard /eephysical) */}
+            <Route
+              path="/eephysical"
+              element={
+                <ListingAccessGuard kind="listing">
+                  <EePhysical />
                 </ListingAccessGuard>
               }
             />
@@ -276,9 +299,9 @@ function App() {
             {/* These routes use specialized components for complex media flows */}
             <Route path="/mediaonline/mediaonlinemultiplexproductinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><MediaMultiplexProductInfo /></ListingAccessGuard>} />
             <Route path="/mediaonline/mediamultiplextechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><MediaMultiplexTechInfo /></ListingAccessGuard>} />
-            <Route path="/mediaonline/mediaonlinedigitalscreensinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><ProductInfo category="mediaonline" /></ListingAccessGuard>} />
-            <Route path="/mediaonline/mediaonlinedigitalscreenstechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><TechInfo category="mediaonline" /></ListingAccessGuard>} />
-            <Route path="/mediaonline/digitalscreensgolive/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><GoLive category="mediaonline" /></ListingAccessGuard>} />
+            <Route path="/mediaonline/mediaonlinedigitalscreensinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><DigitalScreensProductInfo /></ListingAccessGuard>} />
+            <Route path="/mediaonline/mediaonlinedigitalscreenstechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><DigitalScreensTechInfo /></ListingAccessGuard>} />
+            <Route path="/mediaonline/digitalscreensgolive/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><DigitalScreensGoLive /></ListingAccessGuard>} />
             <Route path="/mediaoffline/mediaofflinehoardinginfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingProductInfo /></ListingAccessGuard>} />
             <Route path="/mediaoffline/mediaofflinehoardingtechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingTechInfo /></ListingAccessGuard>} />
             <Route path="/mediaoffline/hoardingsgolive/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingsGoLive /></ListingAccessGuard>} />
@@ -328,11 +351,12 @@ function App() {
                     </ListingAccessGuard>
                   } 
                 />
+                {/* Voucher: techinfo shows ProductInfo (price/variants); then user goes to vouchertechinfo for Voucher Information */}
                 <Route 
                   path={`/${category}/techinfo`} 
                   element={
                     <ListingAccessGuard kind="voucher" category={category}>
-                      <TechInfo category={category} />
+                      <ProductInfo category={category} />
                     </ListingAccessGuard>
                   } 
                 />
@@ -340,7 +364,7 @@ function App() {
                   path={`/${category}/techinfo/:id`} 
                   element={
                     <ListingAccessGuard kind="voucher" category={category}>
-                      <TechInfo category={category} />
+                      <ProductInfo category={category} />
                     </ListingAccessGuard>
                   } 
                 />
@@ -415,6 +439,7 @@ function App() {
             <Route path="/hotelsVoucher/hotelsproductinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><HotelsProductInfo category="hotelsVoucher" /></ListingAccessGuard>} />
             <Route path="/hotelsVoucher/hotelstechinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherTechInfo category="hotelsVoucher" /></ListingAccessGuard>} />
             <Route path="/hotelsVoucher/hotelsdesign/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherDesign category="hotelsVoucher" /></ListingAccessGuard>} />
+            <Route path="/hotelsVoucher/voucherdesign/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherDesign category="hotelsVoucher" /></ListingAccessGuard>} />
             <Route path="/hotelsVoucher/hotelsgolive/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherGoLive category="hotelsVoucher" /></ListingAccessGuard>} />
 
             {/* Bulk Upload Routes */}

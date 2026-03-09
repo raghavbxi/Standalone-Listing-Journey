@@ -118,10 +118,16 @@ export default function MediaOfflineGeneralInfo() {
         ProductSubtitle: data.productsubtitle,
         ProductDescription: data.productdescription,
         ProductSubCategory: data.subcategory,
+        ProductType: 'MediaOffline',
         id: productId,
         ProductUploadStatus: 'productinformation',
         ListingType: 'Media',
-        ProductCategoryName: 'MediaOffline',
+        ProductCategoryName:
+          subcategoryName === 'News Papers / Magazines' || data.subcategory === '647713dcb530d22fce1f6c36'
+            ? 'News Papers / Magazines'
+            : subcategoryName === 'Hoardings'
+              ? 'MediaOffline'
+              : subcategoryName,
         ProductSubCategoryName: subcategoryName,
       };
 

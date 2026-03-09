@@ -69,9 +69,12 @@ export default function SellerHub() {
   const allowedVouchers = getAllowedVouchers(companyType, showAdminView);
   const hasProductAccess = allowedCategories.length > 0;
   const hasVoucherAccess = allowedVouchers.length > 0;
-  const addListingPath = hasProductAccess
-    ? (isMedia ? '/media-physical' : '/add-product')
-    : hasVoucherAccess ? '/generalVoucherForm' : '/sellerhub';
+  // Match bxi-dashboard: EE uses eephysical (Entertainment vs Events); Media uses media-physical; others use physical
+  const addListingPath = isMedia
+    ? '/media-physical'
+    : companyType === 'Entertainment & Events' && hasVoucherAccess
+      ? '/eephysical'
+      : (hasProductAccess || hasVoucherAccess) ? '/physical' : '/sellerhub';
   const addListingLabel = hasProductAccess
     ? (isMedia ? 'Add Media' : 'Add Product')
     : 'Add Voucher';
@@ -249,7 +252,7 @@ export default function SellerHub() {
       ) : null}
       {/* Hero Section */}
       <div className="seller-hero">
-        <div className="seller-hero-content">
+        <div className="seller-hero-content" >
           {totalProductsCount === 0 ? (
             <>
               <p className="text-white/80 text-lg font-medium mb-1">Start Your</p>
@@ -273,8 +276,8 @@ export default function SellerHub() {
       </div>
 
       {/* Tab Cards */}
-      <div className="tab-cards-container">
-        <div className="flex flex-wrap justify-center gap-5">
+      <div className="tab-cards-container" >
+        <div className="tab-cards-grid">
           {TABS.map((tab) => (
             <TabCard
               key={tab}
@@ -283,6 +286,7 @@ export default function SellerHub() {
               isActive={activeTab === tab}
               onClick={() => handleTabChange(tab)}
               isMedia={isMedia}
+              buttonVariant={tab === 'Live Products' || tab === 'All Products' ? 'filled' : 'outline'}
             />
           ))}
         </div>

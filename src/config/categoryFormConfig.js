@@ -79,10 +79,19 @@ export const FEATURE_ENDPOINTS = {
   restaurant: 'restuarantfeatures/Get_restaurant_feature',
   others: 'otherfeature/Get_other_feature',
   lifestyle: 'lifestylefeature/Get_lifestyle_feature',
-  eeVoucher: 'entertainmentfeature/Get_enter_feature',
-  airlineVoucher: 'airfeature/Get_airline_feature',
   mediaonline: 'mediaonlinesinfeature/Get_media_onlinesinglefea',
   mediaoffline: 'mediaonlinesinfeature/Get_media_onlinesinglefea',
+  electronicsVoucher: 'electronicfeature/Get_electronics_feature',
+  fmcgVoucher: 'fmcgproinfo/Get_fmcg_productinfo',
+  mobilityVoucher: 'mobilityfeature/Get_mobility_feature',
+  officesupplyVoucher: 'officesupfeature/Get_officesupply_feature',
+  textileVoucher: 'textilefeature/Get_textile_feature',
+  lifestyleVoucher: 'lifestylefeature/Get_lifestyle_feature',
+  eeVoucher: 'entertainmentfeature/Get_enter_feature',
+  airlineVoucher: 'airfeature/Get_airline_feature',
+  hotelsVoucher: 'hotelfeature/Get_hotel_feature',
+  qsrVoucher: 'hotelfeature/Get_hotel_feature',
+  otherVoucher: 'otherfeature/Get_other_feature',
 };
 
 /**
@@ -178,7 +187,223 @@ export const GENERAL_INFO_CONFIG = {
     hasStarRating: false,
     fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
   },
+  electronicsVoucher: {
+    hasGenderSelection: false,
+    hasSubtitle: true,
+    hasRadioButtons: false,
+    hasStarRating: false,
+    fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
+  },
+  fmcgVoucher: {
+    hasGenderSelection: false,
+    hasSubtitle: true,
+    hasRadioButtons: false,
+    hasStarRating: false,
+    fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
+  },
+  mobilityVoucher: {
+    hasGenderSelection: false,
+    hasSubtitle: true,
+    hasRadioButtons: false,
+    hasStarRating: false,
+    fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
+  },
+  officesupplyVoucher: {
+    hasGenderSelection: false,
+    hasSubtitle: true,
+    hasRadioButtons: false,
+    hasStarRating: false,
+    fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
+  },
+  eeVoucher: {
+    hasGenderSelection: false,
+    hasSubtitle: true,
+    hasRadioButtons: false,
+    hasStarRating: false,
+    fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
+  },
+  textileVoucher: {
+    hasGenderSelection: false,
+    hasSubtitle: true,
+    hasRadioButtons: false,
+    hasStarRating: false,
+    fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
+  },
+  lifestyleVoucher: {
+    hasGenderSelection: false,
+    hasSubtitle: true,
+    hasRadioButtons: false,
+    hasStarRating: false,
+    fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
+  },
+  qsrVoucher: {
+    hasGenderSelection: false,
+    hasSubtitle: true,
+    hasRadioButtons: false,
+    hasStarRating: false,
+    fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
+  },
+  otherVoucher: {
+    hasGenderSelection: false,
+    hasSubtitle: true,
+    hasRadioButtons: false,
+    hasStarRating: false,
+    fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
+  },
 };
+
+/**
+ * Validation schemas for General Info step (bxi productCategories.validationSchemas.generalInfo parity).
+ * Keys: productname { min, max, required }, productsubtitle { min, max, required },
+ * productdescription { min, max, required }, subcategory { min, required }, gender?, HotelStars?, hasRegistrationProcess?
+ */
+export const VALIDATION_SCHEMAS = {
+  generalInfo: {
+    textile: {
+      gender: { required: true },
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    electronics: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    fmcg: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    officesupply: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    mobility: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productdescription: { min: 10, max: 1000, required: true },
+      hasRegistrationProcess: { required: true },
+    },
+    restaurant: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    others: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    lifestyle: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    mediaonline: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    mediaoffline: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    hotelsVoucher: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 10, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 10, max: 1000, required: true },
+      HotelStars: { required: true },
+    },
+    electronicsVoucher: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    fmcgVoucher: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    mobilityVoucher: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    officesupplyVoucher: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    eeVoucher: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    textileVoucher: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    lifestyleVoucher: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    airlineVoucher: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    qsrVoucher: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+    otherVoucher: {
+      subcategory: { min: 1, required: true },
+      productname: { min: 5, max: 50, required: true },
+      productsubtitle: { min: 10, max: 75, required: true },
+      productdescription: { min: 20, max: 1000, required: true },
+    },
+  },
+};
+
+/**
+ * Get validation schema for a step. Uses category first, then base category for vouchers.
+ * @param {string} category - e.g. 'lifestyle', 'hotelsVoucher', 'electronicsVoucher'
+ * @param {string} step - e.g. 'generalInfo'
+ * @returns {Object|null} Rules per field { fieldName: { min?, max?, required? } }
+ */
+export function getValidationSchema(category, step = 'generalInfo') {
+  const stepSchemas = VALIDATION_SCHEMAS[step];
+  if (!stepSchemas) return null;
+  const direct = stepSchemas[category];
+  if (direct) return direct;
+  const base = getBaseCategory(category);
+  return stepSchemas[base] || null;
+}
 
 /**
  * Product Info step config – size options determine which variant fields to show
@@ -266,6 +491,104 @@ export const PRODUCT_INFO_CONFIG = {
 };
 
 /**
+ * Voucher-specific ProductInfo config per category.
+ * Drives dimension options, extra variant columns, and unique fields
+ * that the bxi-dashboard category-specific GeneralInformation components collect.
+ */
+export const VOUCHER_PRODUCT_INFO_CONFIG = {
+  electronicsVoucher: {
+    sizeOptions: ['Weight', 'BatteryCapacity', 'PowerConsumption', 'StorageCapacity', 'Resolution', 'Amplification', 'Frequency', 'Length', 'Length x Height', 'Length x Height x Width', 'Custom Size'],
+    extraVariantColumn: 'color',
+    hasGender: false,
+    hasAirportSelectors: false,
+    hasRedeemedValue: false,
+  },
+  fmcgVoucher: {
+    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'CalorieCount', 'NutritionalInformation', 'ShelfLife', 'Temprature', 'Volume', 'Custom Size'],
+    extraVariantColumn: 'flavor',
+    hasGender: false,
+    hasAirportSelectors: false,
+    hasRedeemedValue: false,
+  },
+  lifestyleVoucher: {
+    sizeOptions: ['Shoes', 'Length', 'Length x Height', 'Length x Height x Width', 'Custom Size'],
+    extraVariantColumn: 'color',
+    hasGender: false,
+    hasAirportSelectors: false,
+    hasRedeemedValue: false,
+  },
+  textileVoucher: {
+    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'Size S to 3XL', 'Size 26 to 42', 'GSM', 'Custom Size'],
+    extraVariantColumn: 'color',
+    hasGender: false,
+    hasAirportSelectors: false,
+    hasRedeemedValue: false,
+  },
+  officesupplyVoucher: {
+    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'GSM', 'Custom Size'],
+    extraVariantColumn: 'color',
+    hasGender: false,
+    hasAirportSelectors: false,
+    hasRedeemedValue: false,
+  },
+  mobilityVoucher: {
+    sizeOptions: ['Weight', 'BatteryCapacity', 'PowerConsumption', 'Volume', 'Length', 'Length x Height', 'Length x Height x Width', 'Custom Size'],
+    extraVariantColumn: 'color',
+    hasGender: false,
+    hasAirportSelectors: false,
+    hasRedeemedValue: false,
+  },
+  qsrVoucher: {
+    sizeOptions: [],
+    extraVariantColumn: 'offeringType',
+    hasGender: false,
+    hasAirportSelectors: false,
+    hasRedeemedValue: false,
+  },
+  airlineVoucher: {
+    sizeOptions: [],
+    extraVariantColumn: null,
+    hasGender: false,
+    hasAirportSelectors: true,
+    hasRedeemedValue: true,
+  },
+  eeVoucher: {
+    sizeOptions: [],
+    extraVariantColumn: 'dateOfEvent',
+    hasGender: false,
+    hasAirportSelectors: false,
+    hasRedeemedValue: false,
+  },
+  otherVoucher: {
+    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'Volume', 'CalorieCount', 'ShelfLife', 'NutritionalInformation', 'Temprature', 'Shoes', 'BatteryCapacity', 'PowerConsumption', 'Resolution', 'Amplification', 'Frequency', 'Humidity', 'Pressure', 'GSM', 'Custom Size'],
+    extraVariantColumn: 'color',
+    hasGender: true,
+    hasAirportSelectors: false,
+    hasRedeemedValue: false,
+  },
+  hotelsVoucher: {
+    sizeOptions: [],
+    extraVariantColumn: null,
+    hasGender: false,
+    hasAirportSelectors: false,
+    hasRedeemedValue: false,
+  },
+};
+
+/** QSR voucher hardcoded feature terms (from bxi-dashboard RestaurantQSRGeneralInformation) */
+export const QSR_HARDCODED_FEATURES = [
+  'Cuisine', 'Buffet', 'Dine In', 'Take Away', 'Home Delivery', 'Drive Through',
+  'Catering', 'Banquet', 'Party Hall', 'Outdoor Seating', 'Rooftop', 'Live Music',
+  'Bar', 'Lounge', 'Pub', 'Cafe', 'Bakery', 'Desserts', 'Ice Cream', 'Juices',
+  'Smoothies', 'Tea', 'Coffee', 'Fast Food', 'Street Food', 'Fine Dining',
+  'Casual Dining', 'Family Restaurant', 'Multi Cuisine', 'North Indian',
+  'South Indian', 'Chinese', 'Italian', 'Continental', 'Mexican', 'Thai',
+  'Japanese', 'Korean', 'Mediterranean', 'Lebanese', 'Mughlai', 'Biryani',
+  'Seafood', 'Vegetarian', 'Vegan', 'Organic', 'Healthy Food', 'Diet Food',
+  'Breakfast', 'Brunch', 'Lunch', 'Dinner', 'Snacks',
+].sort();
+
+/**
  * Tech Info step config – feature/key fields from API
  */
 export const TECH_INFO_CONFIG = {
@@ -279,9 +602,17 @@ export const TECH_INFO_CONFIG = {
   lifestyle: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'SampleLifestyleFeature' },
   mediaonline: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'MediaonlineFeaturesingle' },
   mediaoffline: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'MediaonlineFeaturesingle' },
-  hotelsVoucher: { hasFeatureSelection: false },
+  hotelsVoucher: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'SampleCategoryFeature' },
+  electronicsVoucher: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'ElectronicsFeature' },
+  fmcgVoucher: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'FmcgproductinfoType' },
+  mobilityVoucher: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'SampleMobilityFeature' },
+  officesupplyVoucher: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'OfficesupplyFeature' },
+  textileVoucher: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'TextileFeature' },
+  lifestyleVoucher: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'SampleLifestyleFeature' },
   eeVoucher: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'EntertainmentFeature' },
   airlineVoucher: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'SampleAirlineFeature' },
+  qsrVoucher: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'HotelFeature' },
+  otherVoucher: { hasFeatureSelection: true, featureDataPath: 'data', featureNameField: 'OtherFeature' },
 };
 
 /**
@@ -384,7 +715,7 @@ export function getPrevNextStepPaths(category, stepName, pathname) {
         voucherDesign: { prev: 'hotelsgolive', next: null },
       }[stepName] || { prev: null, next: null }
     : {
-        productInfo: { prev: 'generalinformation', next: 'techinfo' },
+        productInfo: { prev: 'generalinformation', next: 'vouchertechinfo' },
         techInfo: { prev: 'techinfo', next: 'golive' },
         goLive: { prev: 'golive', next: 'voucherdesign' },
         voucherDesign: { prev: 'golive', next: null },
@@ -439,4 +770,8 @@ export function getSubcategoryEndpoint(category) {
 
 export function getFeatureEndpoint(category) {
   return FEATURE_ENDPOINTS[category] || FEATURE_ENDPOINTS[getBaseCategory(category)] || null;
+}
+
+export function getVoucherProductInfoConfig(category) {
+  return VOUCHER_PRODUCT_INFO_CONFIG[category] || null;
 }

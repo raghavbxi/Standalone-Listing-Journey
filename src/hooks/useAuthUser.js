@@ -69,6 +69,7 @@ export function useAuthUser() {
   return {
     user,
     company,
+    companyAvatar: company?.CompanyAvatar?.url,
     companyType: companyTypeName,
     companyTypeId,
     isAdmin,

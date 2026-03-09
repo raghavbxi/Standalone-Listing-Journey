@@ -69,6 +69,7 @@ const hotelVoucherStepMappings = {
   'productinformation': '/hotelsproductinfo',
   'technicalinformation': '/hotelstechinfo',
   'golive': '/hotelsgolive',
+  'voucherdesign': '/voucherdesign',
 };
 
 /**
