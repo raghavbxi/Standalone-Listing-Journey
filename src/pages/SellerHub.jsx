@@ -38,12 +38,14 @@ export default function SellerHub() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { source } = useListingEntryContext();
+  console.log("source", source);
   const {
     companyType: companyTypeName,
     isAdmin,
     loading: authLoading,
     isAuthenticated,
   } = useAuthUser();
+  console.log("isAdmin", isAdmin);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -64,7 +66,9 @@ export default function SellerHub() {
 
   const companyType = companyTypeName || 'Others';
   const isMedia = companyType === 'Media';
-  const showAdminView = isAdmin && source === 'admin';
+  // Treat either a true admin flag or an explicit admin source as admin view
+  const showAdminView = isAdmin || source === 'admin';
+  console.log("showAdminView", showAdminView);
   const allowedCategories = getAllowedCategories(companyType, showAdminView);
   const allowedVouchers = getAllowedVouchers(companyType, showAdminView);
   const hasProductAccess = allowedCategories.length > 0;
@@ -253,19 +257,14 @@ export default function SellerHub() {
       {/* Hero Section */}
       <div className="seller-hero">
         <div className="seller-hero-content" >
-          {totalProductsCount === 0 ? (
+          
             <>
-              <p className="text-white/80 text-lg font-medium mb-1">Start Your</p>
-              <h1>Seller Journey</h1>
-            </>
-          ) : (
-            <>
-              <h1>{showAdminView ? 'All Listings' : 'Sell with BXI'}</h1>
+              <h1>{showAdminView ? 'Ready Stock Listings' : 'Sell with BXI'}</h1>
               <p>Manage your {totalProductsCount} {listingTypeLabel}{showAdminView ? ' (Admin view)' : ''}</p>
             </>
-          )}
+          
           <Button
-            onClick={() => navigate(addListingPath)}
+            onClick={() => navigate(showAdminView ? '/allcategoriesadmin' : addListingPath)}
             className="bg-white text-[#C64091] hover:bg-gray-100 font-semibold px-6 py-3 h-auto shadow-lg hover:shadow-xl transition-shadow"
             data-testid="add-product-btn"
           >
@@ -293,9 +292,21 @@ export default function SellerHub() {
       </div>
 
       {/* Section Title */}
-      <h2 className="section-title" data-testid="section-title">
-        {getSectionTitle()}
-      </h2>
+      <div className="section-header">
+        <h2 className="section-title" data-testid="section-title">
+          {getSectionTitle()}
+        </h2>
+
+        {showAdminView && (
+          <div className="admin-filter">
+            <select>
+              <option value="">Filter</option>
+              <option value="1">Option 1</option>
+              <option value="2">Option 2</option>
+            </select>
+          </div>
+        )}
+      </div>
 
       {/* Product Grid */}
       {loading ? (

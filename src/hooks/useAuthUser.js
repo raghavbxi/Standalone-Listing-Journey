@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { authApi, companyApi } from '../utils/api';
+import { authApi, companyApi, fetchAdminData } from '../utils/api';
 
 /**
  * Returns logged-in user, company type name, and admin flag.
@@ -21,7 +21,17 @@ export function useAuthUser() {
     setLoading(true);
     setError(null);
     try {
+      let adminUser = null;
+      try {
+        adminUser = await fetchAdminData();
+        console.log("adminRes", adminUser);
+      } catch (adminError) {
+        // Admin check failure should not break main auth flow
+        console.warn("Admin auth check failed in useAuthUser", adminError);
+      }
+
       const userRes = await authApi.getLoggedInUser();
+      console.log("userRes", userRes?.data);
       const userData = userRes?.data;
       if (!userData || userData === false) {
         setUser(null);
@@ -64,6 +74,7 @@ export function useAuthUser() {
     refetch();
   }, [refetch]);
 
+  console.log("user", user);
   const isAdmin = !!(user?.superAdmin === true || user?.roleName === 'ADMIN');
 
   return {
