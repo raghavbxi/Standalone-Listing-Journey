@@ -1,10 +1,8 @@
 import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import BXI_logo from "../../assets/BXI Listing LOGO.svg";
 
 export default function TopNavbar() {
-  const navigate = useNavigate();
   const { user, companyAvatar } = useAuthUser();
 
   return (
@@ -39,7 +37,7 @@ export default function TopNavbar() {
       )}
 
       <button
-        onClick={() => navigate("/marketplace")}
+        onClick={() => (window.location.href = "http://localhost:3000/home")}
         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#C64091] border border-[#C64091] border-2 rounded-md hover:bg-[#C64091] hover:text-white transition"
       >
         <ArrowLeft className="w-4 h-4" />
