@@ -16,6 +16,7 @@ import VoucherForm from './pages/VoucherForm';
 import AddProductCategorySelect from './pages/AddProductCategorySelect';
 import MediaOnlinePhysical from './pages/MediaOnlinePhysical';
 import PhysicalDigital from './pages/PhysicalDigital';
+import AllCategoriesAdmin from './pages/AllCategoriesAdmin';
 import EePhysical from './pages/EePhysical';
 import { AuthGuard } from './components/AuthGuard';
 import ListingAccessGuard from './components/guards/ListingAccessGuard';
@@ -96,6 +97,15 @@ function App() {
               element={
                 <ListingAccessGuard kind="listing">
                   <PhysicalDigital />
+                </ListingAccessGuard>
+              }
+            />
+            {/* Admin All Categories – 12 category selection view (admin entry) */}
+            <Route
+              path="/allcategoriesadmin"
+              element={
+                <ListingAccessGuard kind="listing">
+                  <AllCategoriesAdmin />
                 </ListingAccessGuard>
               }
             />

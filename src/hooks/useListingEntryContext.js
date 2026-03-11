@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 
 const SOURCE_KEY = 'listing_entry_source';
 const COMPANY_TYPE_KEY = 'listing_entry_company_type';
+const ADMIN_TOKEN_KEY = 'listing_entry_admintoken';
 
 export default function useListingEntryContext() {
   const location = useLocation();
@@ -20,12 +21,22 @@ export default function useListingEntryContext() {
     const params = new URLSearchParams(location.search);
     const source = normalizeParamValue(params.get('source'));
     const companyType = normalizeParamValue(params.get('companyType'));
+    const adminToken = normalizeParamValue(params.get('admintoken'));
 
     if (source) {
       sessionStorage.setItem(SOURCE_KEY, source);
     }
     if (companyType) {
       sessionStorage.setItem(COMPANY_TYPE_KEY, companyType);
+    }
+    if (adminToken) {
+      try {
+        sessionStorage.setItem(ADMIN_TOKEN_KEY, adminToken);
+        localStorage.setItem('admintoken', adminToken);
+      } catch (e) {
+        // ignore storage failures (e.g., disabled storage)
+        console.warn('Failed to persist admin token for listing entry context', e);
+      }
     }
   }, [location.search]);
 

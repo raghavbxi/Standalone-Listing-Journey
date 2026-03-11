@@ -14,7 +14,24 @@ const api = axios.create({
 
 // Request interceptor
 api.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    // Attach admin token for admin-initiated listing flows (BXI Admin -> Standalone app)
+    if (typeof window !== 'undefined') {
+      try {
+        const adminToken =
+          window.localStorage.getItem('admintoken') ||
+          window.sessionStorage.getItem('admintoken');
+        if (adminToken) {
+          config.headers = config.headers || {};
+          // Dedicated header so backend can distinguish admin context from seller JWT
+          config.headers['x-admin-token'] = adminToken;
+        }
+      } catch {
+        // ignore storage access issues
+      }
+    }
+    return config;
+  },
   (error) => Promise.reject(error)
 );
 
@@ -148,6 +165,11 @@ export const companyApi = {
     api.get(`company_type/get_companyType/${companyTypeId}`),
 };
 
+export const companyTypeApi = {
+  getCompanyTypesForCarousel: () =>
+    api.get('company_type/get_companyTypes_for_carousel'),
+};
+
 // Auth APIs (BXI: auth/logged_user GET, auth/logout GET)
 export const authApi = {
   getLoggedInUser: () =>
@@ -160,6 +182,34 @@ export const authApi = {
     api.get('auth/logout'),
 };
 
+export const fetchAdminData = async (tokenOverride) => {
+  const token =
+    tokenOverride ||
+    (typeof window !== 'undefined' &&
+      (localStorage.getItem('admintoken') ||
+        sessionStorage.getItem('admintoken')));
+
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const response = await api.get('api/v1/admin/getloggedinnuser', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data || null;
+  } catch (error) {
+    const status = error?.response?.status;
+    if (status === 401 || status === 403) {
+      console.warn('Admin not authenticated for Standalone SellerHub', error?.response?.data || error.message);
+      return null;
+    }
+    console.error('Failed to fetch admin data in Standalone app', error);
+    throw error;
+  }
+};
 // Upload APIs
 export const uploadApi = {
   uploadFile: (formData) =>
