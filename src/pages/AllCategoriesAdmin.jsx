@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../components/ui/button";
+import { useAuthUser } from "../hooks/useAuthUser";
 import {
   ShoppingBag,
   Plug,
@@ -16,104 +16,48 @@ import {
   Ellipsis,
 } from "lucide-react";
 
-const ADMIN_CATEGORIES = [
-  {
-    id: 1,
-    key: "textile",
-    label: "Textile",
-    icon: Shirt,
-    companyType: "Textile",
-    routeType: "physical",
-  },
-  {
-    id: 2,
-    key: "electronics",
-    label: "Electronics",
-    icon: Plug,
-    companyType: "Electronics",
-    routeType: "physical",
-  },
-  {
-    id: 3,
-    key: "fmcg",
-    label: "FMCG",
-    icon: ShoppingBag,
-    companyType: "FMCG",
-    routeType: "physical",
-  },
-  {
-    id: 4,
+const IMAGE_CONFIG = {
+  Textile: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Textile.svg",
+  Electronics: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Electronics.svg",
+  FMCG: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/FMCG.svg",
+  "Office Supply": "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Office_Supply.svg",
+  Lifestyle: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Lifestyle.png",
+  Mobility: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Mobility.svg",
+  Media: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Media.svg",
+  "Office Supply": "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Office_Supply.png",
+  Hotel: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Hotel.svg",
+  QSR: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/QSR.svg",
+  Others: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Others.svg",
+  "Entertainment & Events": "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Entertainment.svg",
+  "Airline Tickets": "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Airline_Tickets.svg",
+};
+
+const CATEGORY_CONFIG = {
+  Textile: { key: "textile", icon: Shirt, routeType: "physical" },
+  Electronics: { key: "electronics", icon: Plug, routeType: "physical" },
+  FMCG: { key: "fmcg", icon: ShoppingBag, routeType: "physical" },
+  "Office Supply": {
     key: "officesupply",
-    label: "Office Supply",
     icon: Briefcase,
-    companyType: "Office Supply",
     routeType: "physical",
   },
-  {
-    id: 5,
-    key: "lifestyle",
-    label: "Lifestyle",
-    icon: Package,
-    companyType: "Lifestyle",
-    routeType: "physical",
-  },
-  {
-    id: 6,
-    key: "mobility",
-    label: "Mobility",
-    icon: Car,
-    companyType: "Mobility",
-    routeType: "physical",
-  },
-  {
-    id: 7,
-    key: "restaurant",
-    label: "Restaurant / QSR",
-    icon: Utensils,
-    companyType: "QSR",
-    routeType: "physical",
-  },
-  {
-    id: 8,
-    key: "media",
-    label: "Media",
-    icon: MonitorPlay,
-    companyType: "Media",
-    routeType: "media-physical",
-  },
-  {
-    id: 9,
-    key: "hotels",
-    label: "Hotels",
-    icon: Building2,
-    companyType: "Hotel",
-    routeType: "physical",
-  },
-  {
-    id: 10,
+  Lifestyle: { key: "lifestyle", icon: Package, routeType: "physical" },
+  Mobility: { key: "mobility", icon: Car, routeType: "physical" },
+  QSR: { key: "restaurant", icon: Utensils, routeType: "physical" },
+  Media: { key: "media", icon: MonitorPlay, routeType: "media-physical" },
+  Hotel: { key: "hotels", icon: Building2, routeType: "physical" },
+  "Entertainment & Events": {
     key: "entertainment",
-    label: "Entertainment & Events",
     icon: TicketPercent,
-    companyType: "Entertainment & Events",
     routeType: "eephysical",
   },
-  {
-    id: 11,
+  "Airline Tickets": {
     key: "airline",
-    label: "Airline Tickets",
     icon: Plane,
-    companyType: "Airline Tickets",
     routeType: "physical",
   },
-  {
-    id: 12,
-    key: "others",
-    label: "Others",
-    icon: Ellipsis,
-    companyType: "Others",
-    routeType: "physical",
-  },
-];
+  Others: { key: "others", icon: Ellipsis, routeType: "physical" },
+};
 
 function buildTargetPath(category) {
   const params = new URLSearchParams({
@@ -132,6 +76,30 @@ function buildTargetPath(category) {
 
 export default function AllCategoriesAdmin() {
   const navigate = useNavigate();
+  const { companyTypes, loading } = useAuthUser();
+
+  const categories = useMemo(
+    () =>
+      (companyTypes || [])
+        .map((item) => {
+          const name = item?.CompanyTypeName?.trim();
+          if (!name) return null;
+
+          const config = CATEGORY_CONFIG[name] || {};
+
+          return {
+            id: item._id || name,
+            key: config.key || name.toLowerCase().replace(/\s+/g, "-"),
+            label: name,
+            icon: config.icon || Ellipsis,
+            image: IMAGE_CONFIG[name],
+            companyType: name,
+            routeType: config.routeType || "physical",
+          };
+        })
+        .filter(Boolean),
+    [companyTypes]
+  );
 
   const handleCategoryClick = (category) => {
     const target = buildTargetPath(category);
@@ -145,7 +113,6 @@ export default function AllCategoriesAdmin() {
         return;
       }
     } catch {
-      // ignore history access issues
     }
     navigate("/sellerhub");
   };
@@ -165,8 +132,7 @@ export default function AllCategoriesAdmin() {
             </p>
 
             <div className="admin-category-grid">
-              {ADMIN_CATEGORIES.map((cat) => {
-                const Icon = cat.icon;
+              {categories.map((cat) => {
                 return (
                   <button
                     key={cat.id}
@@ -176,7 +142,15 @@ export default function AllCategoriesAdmin() {
                     data-testid={`admin-category-${cat.key}`}
                   >
                     <div className="admin-category-icon-wrap">
-                      <Icon className="admin-category-icon" />
+                      {cat.image ? (
+                        <img
+                          src={cat.image}
+                          alt={cat.label}
+                          className="admin-category-icon"
+                        />
+                      ) : (
+                        <cat.icon className="admin-category-icon" />
+                      )}
                     </div>
                     <span className="admin-category-label">{cat.label}</span>
                   </button>

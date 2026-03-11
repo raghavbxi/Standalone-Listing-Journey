@@ -165,6 +165,11 @@ export const companyApi = {
     api.get(`company_type/get_companyType/${companyTypeId}`),
 };
 
+export const companyTypeApi = {
+  getCompanyTypesForCarousel: () =>
+    api.get('company_type/get_companyTypes_for_carousel'),
+};
+
 // Auth APIs (BXI: auth/logged_user GET, auth/logout GET)
 export const authApi = {
   getLoggedInUser: () =>
