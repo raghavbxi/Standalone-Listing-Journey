@@ -16,6 +16,7 @@ import VoucherForm from './pages/VoucherForm';
 import AddProductCategorySelect from './pages/AddProductCategorySelect';
 import MediaOnlinePhysical from './pages/MediaOnlinePhysical';
 import PhysicalDigital from './pages/PhysicalDigital';
+import AddMediaCategoryPage from './pages/AddMediaCategoryPage';
 import EePhysical from './pages/EePhysical';
 import { AuthGuard } from './components/AuthGuard';
 import ListingAccessGuard from './components/guards/ListingAccessGuard';
@@ -113,7 +114,8 @@ function App() {
               path="/media-physical"
               element={
                 <ListingAccessGuard kind="product">
-                  <MediaOnlinePhysical />
+                  {/* <MediaOnlinePhysical /> */}
+                  <AddMediaCategoryPage/>
                 </ListingAccessGuard>
               }
             />

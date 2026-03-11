@@ -1,7 +1,7 @@
-import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import BXI_logo from "../../assets/BXI Listing LOGO.svg";
+import GoBackIcon from "../../assets/navbarBackIcon.svg";
 
 export default function TopNavbar() {
   const navigate = useNavigate();
@@ -40,9 +40,11 @@ export default function TopNavbar() {
 
       <button
         onClick={() => navigate("/marketplace")}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#C64091] border border-[#C64091] border-2 rounded-md hover:bg-[#C64091] hover:text-white transition"
+        className="group flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#2261A2] border-2 border-[#2261A2] rounded-md hover:bg-[#2261A2] hover:text-white transition"
       >
-        <ArrowLeft className="w-4 h-4" />
+        <img src={GoBackIcon}
+        className="transition group-hover:brightness-0 group-hover:invert"
+        />
         Back to Marketplace
       </button>
     </div>
