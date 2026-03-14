@@ -71,8 +71,11 @@ export default function PhysicalDigital() {
   const navigate = useNavigate();
   const { companyType, isAdmin } = useAuthUser();
   const { source, entryCompanyType } = useListingEntryContext();
-  const effectiveCompanyType = companyType || entryCompanyType || "Others";
   const adminContext = isAdmin || source === "admin";
+  // When admin context with URL companyType, prioritize entryCompanyType over logged-in user's type
+  const effectiveCompanyType = (adminContext && entryCompanyType)
+    ? entryCompanyType
+    : (companyType || entryCompanyType || "Others");
   const [selectedProduct, setSelectedProduct] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState(false);
   const [physicalData, setPhysicalData] = useState(null);

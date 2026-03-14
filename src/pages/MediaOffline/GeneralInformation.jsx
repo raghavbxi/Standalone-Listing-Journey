@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,6 +24,21 @@ import {
 import { toast } from 'sonner';
 import api from '../../utils/api';
 
+/**
+ * Journey type determines the flow after general info:
+ * - hoarding → Hoarding flow
+ * - btl (Car wrap/Bus wrap/Train wrap) → Generic product info flow
+ */
+const getJourneyRoute = (journey, productId) => {
+  switch (journey) {
+    case 'hoarding':
+      return `/mediaoffline/mediaofflinehoardinginfo/${productId}`;
+    case 'btl':
+    default:
+      return `/mediaoffline/product-info/${productId}`;
+  }
+};
+
 const schema = z.object({
   subcategory: z.string().min(1, 'Subcategory is required'),
   productname: z.string().min(5, 'Minimum 5 characters').max(50, 'Maximum 50 characters'),
@@ -35,10 +50,26 @@ export default function MediaOfflineGeneralInfo() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [productData, setProductData] = useState(null);
+
+  // Get journey and media category from URL params or storage
+  const journey = useMemo(() => {
+    return searchParams.get('journey') ||
+      sessionStorage.getItem('mediaJourney') ||
+      localStorage.getItem('mediaJourney') ||
+      '';
+  }, [searchParams]);
+
+  const mediaCategory = useMemo(() => {
+    return searchParams.get('mediaCategory') ||
+      sessionStorage.getItem('mediaCategory') ||
+      localStorage.getItem('mediaCategory') ||
+      '';
+  }, [searchParams]);
 
   const {
     register,
@@ -129,6 +160,9 @@ export default function MediaOfflineGeneralInfo() {
               ? 'MediaOffline'
               : subcategoryName,
         ProductSubCategoryName: subcategoryName,
+        // Store media category for downstream pages
+        mediaCategory: mediaCategory,
+        mediaJourney: journey,
       };
 
       const res = await api.post('/product/product_mutation', payload);
@@ -136,8 +170,11 @@ export default function MediaOfflineGeneralInfo() {
 
       toast.success('General information saved!');
 
-      // Route based on subcategory
-      if (subcategoryName === 'Hoardings') {
+      // Route based on journey type (priority) or fallback to subcategory
+      if (journey) {
+        const nextRoute = getJourneyRoute(journey, responseData._id);
+        navigate(nextRoute);
+      } else if (subcategoryName === 'Hoardings') {
         navigate(`/mediaoffline/mediaofflinehoardinginfo/${responseData._id}`);
       } else {
         navigate(`/mediaoffline/product-info/${responseData._id}`);

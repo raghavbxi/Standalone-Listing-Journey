@@ -22,7 +22,10 @@ export default function ListingAccessGuard({ kind, category, children }) {
 
   const allowAdminAllCategories =
     isAdmin || (source === 'admin' && hasAdminToken);
-  const effectiveCompanyType = companyType || entryCompanyType || 'Others';
+  // When admin context with URL companyType, prioritize entryCompanyType over logged-in user's type
+  const effectiveCompanyType = (allowAdminAllCategories && entryCompanyType)
+    ? entryCompanyType
+    : (companyType || entryCompanyType || 'Others');
 
   if (loading) {
     return null;

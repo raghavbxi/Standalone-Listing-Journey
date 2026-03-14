@@ -25,9 +25,12 @@ export const Sidebar = ({ isOpen, onClose }) => {
   const { companyType, user, isAdmin, loading } = useAuthUser();
   const { source, entryCompanyType } = useListingEntryContext();
 
-  const allowAdminAllCategories = isAdmin && source === 'admin';
+  const allowAdminAllCategories = isAdmin || source === 'admin';
   const isNormalUserView = !allowAdminAllCategories;
-  const effectiveCompanyType = companyType || entryCompanyType || 'Others';
+  // When admin context with URL companyType, prioritize entryCompanyType over logged-in user's type
+  const effectiveCompanyType = (allowAdminAllCategories && entryCompanyType)
+    ? entryCompanyType
+    : (companyType || entryCompanyType || 'Others');
   const allowedCategories = getAllowedCategories(effectiveCompanyType, allowAdminAllCategories);
   const allowedVouchers = getAllowedVouchers(effectiveCompanyType, allowAdminAllCategories);
   const hasProductAccess = allowedCategories.length > 0;

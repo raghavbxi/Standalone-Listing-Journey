@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,6 +24,26 @@ import {
 import { toast } from 'sonner';
 import api from '../../utils/api';
 
+/**
+ * Journey type determines the flow after general info:
+ * - digital-ads / digital-screens → Digital Screens flow
+ * - multiplex → Multiplex flow
+ * - display-video / airport / other → Generic product info flow
+ */
+const getJourneyRoute = (journey, productId) => {
+  switch (journey) {
+    case 'digital-ads':
+    case 'digital-screens':
+      return `/mediaonline/mediaonlinedigitalscreensinfo/${productId}`;
+    case 'multiplex':
+      return `/mediaonline/mediaonlinemultiplexproductinfo/${productId}`;
+    case 'display-video':
+    case 'airport':
+    default:
+      return `/mediaonline/product-info/${productId}`;
+  }
+};
+
 const schema = z.object({
   subcategory: z.string().min(1, 'Subcategory is required'),
   productname: z.string().min(5, 'Minimum 5 characters').max(50, 'Maximum 50 characters'),
@@ -35,10 +55,26 @@ export default function MediaGeneralInfo() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [productData, setProductData] = useState(null);
+
+  // Get journey and media category from URL params or storage
+  const journey = useMemo(() => {
+    return searchParams.get('journey') ||
+      sessionStorage.getItem('mediaJourney') ||
+      localStorage.getItem('mediaJourney') ||
+      '';
+  }, [searchParams]);
+
+  const mediaCategory = useMemo(() => {
+    return searchParams.get('mediaCategory') ||
+      sessionStorage.getItem('mediaCategory') ||
+      localStorage.getItem('mediaCategory') ||
+      '';
+  }, [searchParams]);
 
   const {
     register,
@@ -113,6 +149,12 @@ export default function MediaGeneralInfo() {
       const subcategoryName = getSubcategoryName(data.subcategory);
       const productId = id || location?.state?.id;
 
+      // Determine ProductCategoryName based on journey or subcategory
+      let productCategoryName = 'MediaOnline';
+      if (journey === 'multiplex' || subcategoryName === 'Multiplex ADs' || data.subcategory === '643cda0c53068696706e3951') {
+        productCategoryName = 'Multiplex ADs';
+      }
+
       const payload = {
         ProductName: data.productname,
         ProductSubtitle: data.productsubtitle,
@@ -121,11 +163,11 @@ export default function MediaGeneralInfo() {
         id: productId,
         ProductUploadStatus: 'productinformation',
         ListingType: 'Media',
-        ProductCategoryName:
-          subcategoryName === 'Multiplex ADs' || data.subcategory === '643cda0c53068696706e3951'
-            ? 'Multiplex ADs'
-            : 'MediaOnline',
+        ProductCategoryName: productCategoryName,
         ProductSubCategoryName: subcategoryName,
+        // Store media category for downstream pages
+        mediaCategory: mediaCategory,
+        mediaJourney: journey,
       };
 
       const res = await api.post('/product/product_mutation', payload);
@@ -133,8 +175,11 @@ export default function MediaGeneralInfo() {
 
       toast.success('General information saved!');
 
-      // Route based on subcategory
-      if (responseData?.ProductSubCategoryName === 'Digital ADs') {
+      // Route based on journey type (priority) or fallback to subcategory
+      if (journey) {
+        const nextRoute = getJourneyRoute(journey, responseData._id);
+        navigate(nextRoute);
+      } else if (responseData?.ProductSubCategoryName === 'Digital ADs') {
         navigate(`/mediaonline/mediaonlinedigitalscreensinfo/${responseData._id}`);
       } else if (responseData?.ProductCategoryName === 'Multiplex ADs') {
         navigate(`/mediaonline/mediaonlinemultiplexproductinfo/${responseData._id}`);
