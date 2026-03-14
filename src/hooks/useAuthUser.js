@@ -22,16 +22,48 @@ export function useAuthUser() {
     setLoading(true);
     setError(null);
     try {
+      // 1. First try admin auth (for BXI-admin -> Standalone flow)
       let adminUser = null;
       try {
         adminUser = await fetchAdminData();
+        console.log('[useAuthUser] Admin data:', adminUser ? 'found' : 'not found');
       } catch (adminError) {
-        // Admin check failure should not break main auth flow
-        console.warn("Admin auth check failed in useAuthUser", adminError);
+        console.warn('[useAuthUser] Admin auth check failed:', adminError?.message);
       }
 
+      // 2. If admin user found, use admin context
+      if (adminUser && adminUser._id) {
+        console.log('[useAuthUser] Using admin context');
+        // Set admin user with isAdminContext flag
+        setUser({
+          ...adminUser,
+          isAdminContext: true,
+          isBrandWorld: true,
+        });
+        
+        // Get BrandWorld company for admin
+        try {
+          const companyRes = await authApi.getAuthCompany();
+          const companyData = companyRes?.data;
+          if (companyData) {
+            setCompany(companyData);
+            setCompanyTypeId(companyData.companyType || null);
+            // Admin can list all product types
+            const carouselRes = await companyTypeApi.getCompanyTypesForCarousel();
+            setCompanyTypes(carouselRes?.data || []);
+            setCompanyTypeName('Admin');
+          }
+        } catch (e) {
+          console.warn('[useAuthUser] Failed to get company for admin:', e?.message);
+        }
+        return;
+      }
+
+      // 3. Fall back to seller/user auth (for bxi-dashboard -> Standalone flow)
       const userRes = await authApi.getLoggedInUser();
       const userData = userRes?.data;
+      console.log('[useAuthUser] Seller data:', userData ? 'found' : 'not found');
+      
       if (!userData || userData === false) {
         setUser(null);
         setCompany(null);

@@ -2,34 +2,31 @@ import axios from 'axios';
 
 const BXI_API_KEY = process.env.REACT_APP_BXI_API_KEY || 'Bearer K8sY2jF4pL3rQ1hA9gZ6bX7wC5vU0t';
 
-// Check for admintoken in URL (passed from BXI-admin) and store it
-// This function can be called multiple times to ensure token is captured
-const checkAndStoreAdminToken = () => {
+// Get admin token - checks URL first, then sessionStorage
+// Always checks URL to handle fresh navigations from BXI-admin
+const getAdminToken = () => {
   try {
+    // Always check URL first (in case of fresh navigation from admin)
     const urlParams = new URLSearchParams(window.location.search);
-    const adminTokenFromUrl = urlParams.get('admintoken');
-    if (adminTokenFromUrl) {
-      console.log('[API] Admin token found in URL, storing in sessionStorage');
-      sessionStorage.setItem('admintoken', adminTokenFromUrl);
-      return adminTokenFromUrl;
+    const tokenFromUrl = urlParams.get('admintoken');
+    
+    if (tokenFromUrl) {
+      // Store for subsequent requests
+      sessionStorage.setItem('admintoken', tokenFromUrl);
+      console.log('[API] Admin token found in URL');
+      return tokenFromUrl;
+    }
+    
+    // Fall back to stored token
+    const storedToken = sessionStorage.getItem('admintoken');
+    if (storedToken) {
+      console.log('[API] Using stored admin token');
+      return storedToken;
     }
   } catch (e) {
-    console.error('[API] Error parsing URL params:', e);
+    console.error('[API] Error getting admin token:', e);
   }
   return null;
-};
-
-// Initial check on module load
-checkAndStoreAdminToken();
-
-// Get stored admin token (checks URL again if not in storage)
-const getAdminToken = () => {
-  let token = sessionStorage.getItem('admintoken');
-  if (!token) {
-    // Try to get from URL again (in case module was loaded before URL was set)
-    token = checkAndStoreAdminToken();
-  }
-  return token;
 };
 
 // Create axios instance with base configuration (BXI mounts routes at root, no /api)
@@ -45,20 +42,12 @@ const api = axios.create({
 // Request interceptor - add admin token if present
 api.interceptors.request.use(
   (config) => {
-    // Attach admin token for admin-initiated listing flows (BXI Admin -> Standalone app)
-    if (typeof window !== 'undefined') {
-      try {
-        const adminToken =
-          window.localStorage.getItem('admintoken') ||
-          window.sessionStorage.getItem('admintoken');
-        if (adminToken) {
-          config.headers = config.headers || {};
-          // Dedicated header so backend can distinguish admin context from seller JWT
-          config.headers['x-admin-token'] = adminToken;
-        }
-      } catch {
-        // ignore storage access issues
-      }
+    const token = getAdminToken();
+    if (token) {
+      config.headers['x-admin-token'] = token;
+      console.log('[API] Admin token attached to request:', config.url);
+    } else {
+      console.log('[API] No admin token, using cookie auth for:', config.url);
     }
     return config;
   },
