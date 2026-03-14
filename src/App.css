@@ -21,6 +21,28 @@
   }
 }
 
+.section-header {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.section-title {
+  text-align: center;
+}
+
+.admin-filter {
+  position: absolute;
+  right: 40px;
+}
+
+.admin-filter select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
 /* Sidebar */
 .sidebar {
   position: fixed;

@@ -17,6 +17,7 @@ import AddProductCategorySelect from './pages/AddProductCategorySelect';
 import MediaOnlinePhysical from './pages/MediaOnlinePhysical';
 import PhysicalDigital from './pages/PhysicalDigital';
 import AddMediaCategoryPage from './pages/AddMediaCategoryPage';
+import AllCategoriesAdmin from './pages/AllCategoriesAdmin';
 import EePhysical from './pages/EePhysical';
 import { AuthGuard } from './components/AuthGuard';
 import ListingAccessGuard from './components/guards/ListingAccessGuard';
@@ -100,6 +101,15 @@ function App() {
                 </ListingAccessGuard>
               }
             />
+            {/* Admin All Categories – 12 category selection view (admin entry) */}
+            <Route
+              path="/allcategoriesadmin"
+              element={
+                <ListingAccessGuard kind="listing">
+                  <AllCategoriesAdmin />
+                </ListingAccessGuard>
+              }
+            />
             {/* EE Physical – Entertainment vs Events then voucher type (per bxi-dashboard /eephysical) */}
             <Route
               path="/eephysical"
@@ -116,6 +126,15 @@ function App() {
                 <ListingAccessGuard kind="product">
                   {/* <MediaOnlinePhysical /> */}
                   <AddMediaCategoryPage/>
+                </ListingAccessGuard>
+              }
+            />
+<Route
+              path="/allcategoriesadmin"
+              element={
+                <ListingAccessGuard kind="product">
+                  {/* <MediaOnlinePhysical /> */}
+                  <AllCategoriesAdmin/>
                 </ListingAccessGuard>
               }
             />
