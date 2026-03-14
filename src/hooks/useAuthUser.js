@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { authApi, companyApi } from '../utils/api';
+import { authApi, companyApi, fetchAdminData, companyTypeApi } from '../utils/api';
 
 /**
  * Returns logged-in user, company type name, and admin flag.
@@ -13,6 +13,7 @@ export function useAuthUser() {
   const [user, setUser] = useState(null);
   const [company, setCompany] = useState(null);
   const [companyTypeName, setCompanyTypeName] = useState('');
+  const [companyTypes, setCompanyTypes] = useState([]);
   const [companyTypeId, setCompanyTypeId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,6 +22,14 @@ export function useAuthUser() {
     setLoading(true);
     setError(null);
     try {
+      let adminUser = null;
+      try {
+        adminUser = await fetchAdminData();
+      } catch (adminError) {
+        // Admin check failure should not break main auth flow
+        console.warn("Admin auth check failed in useAuthUser", adminError);
+      }
+
       const userRes = await authApi.getLoggedInUser();
       const userData = userRes?.data;
       if (!userData || userData === false) {
@@ -39,6 +48,8 @@ export function useAuthUser() {
           setCompany(companyData);
           setCompanyTypeId(companyData.companyType);
           const typeRes = await companyApi.getCompanyType(companyData.companyType);
+          const carouselRes = await companyTypeApi.getCompanyTypesForCarousel();
+          setCompanyTypes(carouselRes?.data || []);
           const name = typeRes?.data?.CompanyTypeName || typeRes?.data?.stringValue || '';
           setCompanyTypeName(name);
         } else {
@@ -63,8 +74,7 @@ export function useAuthUser() {
   useEffect(() => {
     refetch();
   }, [refetch]);
-
-  const isAdmin = !!(user?.superAdmin === true || user?.roleName === 'ADMIN');
+  const isAdmin = !!(user?.isBrandWorld === true);
 
   return {
     user,
@@ -77,6 +87,7 @@ export function useAuthUser() {
     error,
     refetch,
     isAuthenticated: !!user,
+    companyTypes,
   };
 }
 

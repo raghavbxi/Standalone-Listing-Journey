@@ -8,7 +8,20 @@ export default function ListingAccessGuard({ kind, category, children }) {
   const { companyType, isAdmin, loading } = useAuthUser();
   const { source, entryCompanyType } = useListingEntryContext();
 
-  const allowAdminAllCategories = isAdmin && source === 'admin';
+  let hasAdminToken = false;
+  if (typeof window !== 'undefined') {
+    try {
+      hasAdminToken = !!(
+        window.localStorage.getItem('admintoken') ||
+        window.sessionStorage.getItem('listing_entry_admintoken')
+      );
+    } catch {
+      hasAdminToken = false;
+    }
+  }
+
+  const allowAdminAllCategories =
+    isAdmin || (source === 'admin' && hasAdminToken);
   const effectiveCompanyType = companyType || entryCompanyType || 'Others';
 
   if (loading) {

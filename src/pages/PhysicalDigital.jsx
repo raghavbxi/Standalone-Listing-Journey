@@ -9,6 +9,7 @@ import { ArrowLeft, Package, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
 import { useAuthUser } from "../hooks/useAuthUser";
+import useListingEntryContext from "../hooks/useListingEntryContext";
 import { getAllowedCategories, getAllowedVouchers } from "../config/categories";
 
 const PHYSICAL_OPTIONS = [
@@ -69,6 +70,9 @@ const COMPANY_TYPE_TO_VOUCHER_PATH = {
 export default function PhysicalDigital() {
   const navigate = useNavigate();
   const { companyType, isAdmin } = useAuthUser();
+  const { source, entryCompanyType } = useListingEntryContext();
+  const effectiveCompanyType = companyType || entryCompanyType || "Others";
+  const adminContext = isAdmin || source === "admin";
   const [selectedProduct, setSelectedProduct] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState(false);
   const [physicalData, setPhysicalData] = useState(null);
@@ -76,9 +80,15 @@ export default function PhysicalDigital() {
   const [selectedBulkUpload, setSelectedBulkUpload] = useState(false);
   const [openView, setOpenView] = useState(0);
 
-  const showAdminView = isAdmin;
-  const allowedCategories = getAllowedCategories(companyType, showAdminView);
-  const allowedVouchers = getAllowedVouchers(companyType, showAdminView);
+  const showAdminView = adminContext;
+  const allowedCategories = getAllowedCategories(
+    effectiveCompanyType,
+    showAdminView
+  );
+  const allowedVouchers = getAllowedVouchers(
+    effectiveCompanyType,
+    showAdminView
+  );
   const hasProductAccess = allowedCategories.length > 0;
   const hasVoucherAccess = allowedVouchers.length > 0;
 
@@ -87,7 +97,7 @@ export default function PhysicalDigital() {
     "Hotels",
     "Airline Tickets",
     "Airlines Tickets",
-  ].includes(companyType);
+  ].includes(effectiveCompanyType);
   useEffect(() => {
     if (isVoucherOnly) {
       setSelectedVoucher(true);
@@ -109,12 +119,12 @@ export default function PhysicalDigital() {
         );
         return;
       }
-      const path = COMPANY_TYPE_TO_VOUCHER_PATH[companyType];
+      const path = COMPANY_TYPE_TO_VOUCHER_PATH[effectiveCompanyType];
       if (path) {
         // Match bxi-dashboard: store voucher type and company for general-info and downstream steps
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem('digitalData', digitalData?.name ?? 'Offer Specific');
-          localStorage.setItem('companyType', companyType ?? '');
+          localStorage.setItem('companyType', effectiveCompanyType ?? '');
         }
         navigate(path);
       } else {
@@ -131,10 +141,10 @@ export default function PhysicalDigital() {
       if (selectedBulkUpload) {
         navigate("/productbulkupload");
       } else {
-        const path = COMPANY_TYPE_TO_PRODUCT_PATH[companyType];
+        const path = COMPANY_TYPE_TO_PRODUCT_PATH[effectiveCompanyType];
         if (path && path.includes("general")) {
           navigate(path);
-        } else if (companyType === "Hotel") {
+        } else if (effectiveCompanyType === "Hotel") {
           navigate("/hotelsVoucher/generalinformation");
         } else {
           toast.error(
@@ -211,7 +221,7 @@ export default function PhysicalDigital() {
             <button
               type="button"
               onClick={() => {
-                if (companyType === "Entertainment & Events") {
+                if (effectiveCompanyType === "Entertainment & Events") {
                   navigate("/eephysical");
                   return;
                 }
