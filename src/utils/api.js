@@ -2,6 +2,36 @@ import axios from 'axios';
 
 const BXI_API_KEY = process.env.REACT_APP_BXI_API_KEY || 'Bearer K8sY2jF4pL3rQ1hA9gZ6bX7wC5vU0t';
 
+// Check for admintoken in URL (passed from BXI-admin) and store it
+// This function can be called multiple times to ensure token is captured
+const checkAndStoreAdminToken = () => {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const adminTokenFromUrl = urlParams.get('admintoken');
+    if (adminTokenFromUrl) {
+      console.log('[API] Admin token found in URL, storing in sessionStorage');
+      sessionStorage.setItem('admintoken', adminTokenFromUrl);
+      return adminTokenFromUrl;
+    }
+  } catch (e) {
+    console.error('[API] Error parsing URL params:', e);
+  }
+  return null;
+};
+
+// Initial check on module load
+checkAndStoreAdminToken();
+
+// Get stored admin token (checks URL again if not in storage)
+const getAdminToken = () => {
+  let token = sessionStorage.getItem('admintoken');
+  if (!token) {
+    // Try to get from URL again (in case module was loaded before URL was set)
+    token = checkAndStoreAdminToken();
+  }
+  return token;
+};
+
 // Create axios instance with base configuration (BXI mounts routes at root, no /api)
 const api = axios.create({
   baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:7000',
@@ -12,9 +42,19 @@ const api = axios.create({
   },
 });
 
-// Request interceptor
+// Request interceptor - add admin token if present
 api.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    const token = getAdminToken();
+    if (token) {
+      // Backend expects admin tokens via x-admin-token header (not Authorization)
+      config.headers['x-admin-token'] = token;
+      console.log('[API] Adding x-admin-token header to request:', config.url);
+    } else {
+      console.log('[API] No admin token found for request:', config.url);
+    }
+    return config;
+  },
   (error) => Promise.reject(error)
 );
 
