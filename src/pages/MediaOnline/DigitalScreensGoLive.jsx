@@ -8,6 +8,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { toast } from 'sonner';
 import api from '../../utils/api';
+import axios from 'axios';
 
 export default function DigitalScreensGoLive() {
   const { id } = useParams();
@@ -19,7 +20,7 @@ export default function DigitalScreensGoLive() {
     if (!id) return;
     const fetchProduct = async () => {
       try {
-        const res = await api.get(`/product/get_product_byId/${id}`);
+        const res = await axios.get(`http://localhost:7000/product/get_product_byId/${id}`);
         setProductData(res?.data);
       } catch (e) {
         toast.error('Failed to load product');

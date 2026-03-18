@@ -23,6 +23,7 @@ import {
 } from '../../components/ui/tooltip';
 import { toast } from 'sonner';
 import api from '../../utils/api';
+import axios from 'axios';
 
 /**
  * Journey type determines the flow after general info:
@@ -112,7 +113,7 @@ export default function MediaOfflineGeneralInfo() {
       if (!productId) return;
       
       try {
-        const res = await api.get(`/product/get_product_byId/${productId}`);
+        const res = await axios.get(`http://localhost:7000/product/get_product_byId/${productId}`);
         const data = res?.data;
         setProductData(data);
         if (data) {

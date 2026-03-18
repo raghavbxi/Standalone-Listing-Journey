@@ -39,8 +39,8 @@ import HoardingsGoLive from './pages/MediaOffline/HoardingsGoLive';
 // Voucher Components
 import HotelsProductInfo from './pages/Vouchers/HotelsProductInfo';
 import VoucherTechInfo from './pages/Vouchers/VoucherTechInfo';
-import VoucherDesign from './pages/Vouchers/VoucherDesign';
-import VoucherGoLive from './pages/Vouchers/VoucherGoLive';
+import VoucherDesign from './pages/Vouchers/EditVoucherTemplate/Voucher';
+import VoucherGoLive from './pages/Vouchers/EditVoucherTemplate/Voucher';
 
 // Product Categories
 const productCategories = [
