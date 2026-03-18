@@ -185,7 +185,7 @@ export default function ProductPreview() {
         if (cancelled) return;
         setProduct(data);
         const variants = data?.ProductsVariantions ?? [];
-        if (variants.length > 0) {
+        if (variants?.length > 0) {
           setSelectedVariant(variants[0]?._id ?? variants[0]?.id);
         }
       })
@@ -233,14 +233,12 @@ export default function ProductPreview() {
     (v) => (v._id ?? v.id) === selectedVariant
   );
 
-  console.log("productproductproductproduct",product?.ListingType)
-  const images = product?.ListingType === 'Product' ? product?.ProductImages : product?.VoucherImages || [];
-  console.log("imagesimagesimagesimages",images);
+  const images = product?.ListingType === 'Product' ? product?.ProductImages  : product?.ListingType === "Media" ?  product?.ProductImages : product?.VoucherImages || [];
   const sizeChartUrl = product?.SizeChart?.[0]?.url;
   const canShowUpload =
     product?.ProductUploadStatus !== 'Approved' &&
     product?.ProductUploadStatus !== 'pendingapproval' &&
-    images.length > 0;
+    images?.length > 0;
 
   const primaryColor = '#C64091';
   const primaryDark = '#A03375';
@@ -334,7 +332,6 @@ export default function ProductPreview() {
     'Product Size',
     'Product ID',
   ];
-  console.log("sudgyufgsdufgusgdfuygdsu",images);
 
   return (
     <Box
@@ -381,7 +378,7 @@ export default function ProductPreview() {
           {/* Image carousel */}
           <Grid item xs={12} lg={6}>
             <Stack alignItems="center">
-              {images.length === 0 ? (
+              {images?.length === 0 ? (
                 <Box
                   sx={{
                     width: '100%',
@@ -409,13 +406,13 @@ export default function ProductPreview() {
                       backgroundSize: product?.ListingType === 'Product' ? 'cover' : 'contain',
                       backgroundPosition: product?.ListingType === 'Product' ? 'center' : 'center',
                       backgroundRepeat: product?.ListingType === 'Product' ? 'no-repeat' : 'no-repeat',
-                      backgroundImage: `url(${images[carouselIndex]?.url || defaultImage})`,
+                      backgroundImage: `url(${images?.[carouselIndex]?.url || defaultImage})`,
                     }}
                   />
-                  {images.length > 1 && (
+                  {images?.length > 1 && (
                     <>
                       <IconButton
-                        onClick={() => setCarouselIndex((i) => (i === 0 ? images.length - 1 : i - 1))}
+                        onClick={() => setCarouselIndex((i) => (i === 0 ? images?.length - 1 : i - 1))}
                         sx={{
                           position: 'absolute',
                           left: 8,
@@ -428,7 +425,7 @@ export default function ProductPreview() {
                         <ChevronLeft size={24} />
                       </IconButton>
                       <IconButton
-                        onClick={() => setCarouselIndex((i) => (i === images.length - 1 ? 0 : i + 1))}
+                        onClick={() => setCarouselIndex((i) => (i === images?.length - 1 ? 0 : i + 1))}
                         sx={{
                           position: 'absolute',
                           right: 8,
@@ -468,7 +465,7 @@ export default function ProductPreview() {
                 </Typography>
               </Box>
 
-              {variants.length > 1 && (
+              {variants?.length > 1 && (
                 <FormControl size="small" sx={{ minWidth: 280 }}>
                   <InputLabel>Select Variant</InputLabel>
                   <Select
@@ -476,7 +473,7 @@ export default function ProductPreview() {
                     label="Select Variant"
                     onChange={(e) => setSelectedVariant(e.target.value)}
                   >
-                    {variants.map((v) => (
+                    {variants?.map((v) => (
                       <MenuItem key={v._id ?? v.id} value={v._id ?? v.id}>
                         ID: {v.ProductIdType || 'N/A'} / {v.ProductSize || v.flavor || v.NutritionInfo || 'N/A'}
                       </MenuItem>
@@ -554,8 +551,8 @@ export default function ProductPreview() {
                               ? `${selectedVariantData.ShoeSize} ${selectedVariantData.MeasurementUnit || ''}`
                               : selectedVariantData.ProductSize ||
                                 selectedVariantData.NutritionInfo ||
-                                (selectedVariantData.length && selectedVariantData.MeasurementUnit
-                                  ? `${selectedVariantData.length} ${selectedVariantData.MeasurementUnit}`
+                                (selectedVariantData?.length && selectedVariantData?.MeasurementUnit
+                                  ? `${selectedVariantData?.length} ${selectedVariantData?.MeasurementUnit}`
                                   : 'N/A')}
                           </Typography>
                         </TableCell>
@@ -851,7 +848,7 @@ export default function ProductPreview() {
                           {ti?.Length && (
                             <Grid item xs={4}>
                               <Typography variant="body2" color="text.secondary">Length</Typography>
-                              <Typography fontWeight="500">{ti.Length}</Typography>
+                              <Typography fontWeight="500">{ti?.Length}</Typography>
                             </Grid>
                           )}
                         </Grid>

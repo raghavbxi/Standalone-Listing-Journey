@@ -15,7 +15,6 @@ import { Badge } from '../../components/ui/badge';
 import { DataGrid } from '@mui/x-data-grid';
 import { toast } from 'sonner';
 import api from '../../utils/api';
-import axios from 'axios';
 
 const schema = z.object({
   location: z.string().min(1, 'Location is required'),
@@ -90,7 +89,7 @@ export default function DigitalScreensProductInfo() {
     if (!id) return;
     const fetchProduct = async () => {
       try {
-        const res = await axios.get(`http://localhost:7000/product/get_product_byId/${id}`);
+        const res = await api.get(`product/get_product_byId/${id}`);
         const data = res?.data;
         setProductData(data);
         if (data?.tags?.length) setTags(data.tags);

@@ -15,7 +15,7 @@ import Other from "../assets/AddMediaCategoryPageIcons/Other.svg"
 /**
  * Media Categories with their journey mappings:
  * - Television → Digital Ads journey (mediaonline, subcategory: Digital ADs)
- * - Print Media → Digital Screens journey (mediaonline, subcategory: Digital ADs)
+ * - Print Media → Newspaper journey (mediaoffline, News Papers / Magazines)
  * - Radio → Display video journey (mediaonline, non-excel upload)
  * - Hoarding → Hoarding journey (mediaoffline, subcategory: Hoardings)
  * - Multiplex → Multiplex journey (mediaonline, subcategory: Multiplex ADs)
@@ -39,9 +39,9 @@ const MEDIA_CATEGORIES = [
     key: "print",
     label: "Print Media",
     icon: Print,
-    mediaType: "mediaonline",
-    subcategoryHint: "Digital ADs",
-    journey: "digital-screens",
+    mediaType: "mediaoffline",
+    subcategoryHint: "News Papers / Magazines",
+    journey: "newspaper",
   },
   {
     id: 3,

@@ -8,7 +8,6 @@ import { DataGrid } from '@mui/x-data-grid';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Textarea } from '../../components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -16,12 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '../../components/ui/tooltip';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
 import api, { mediaApi } from '../../utils/api';
@@ -212,7 +205,7 @@ export default function MediaMultiplexProductInfo() {
     setValue('location', '');
     setValue('repetition', '');
     setValue('dimensionSize', '');
-    toast.success('Media variation added');
+    toast.success('Media variation added successfully');
   };
 
   const handleRemoveMediaVariation = (idx) => {
@@ -366,7 +359,6 @@ export default function MediaMultiplexProductInfo() {
 
             {/* Media Variation */}
             <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
-              <h3 className="text-base font-semibold text-[#111827]">Media Variation</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Location <span className="text-red-500">*</span></Label>
