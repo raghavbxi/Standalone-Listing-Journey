@@ -6,6 +6,7 @@ import { store } from './redux/store';
 
 // Layout
 import { Layout } from './components/layout/Layout';
+import ScrollToTop from './components/ScrollToTop';
 
 // Pages
 import SellerHub from './pages/SellerHub';
@@ -73,6 +74,7 @@ function App() {
   return (
     <Provider store={store}>
       <BrowserRouter>
+        <ScrollToTop />
         <Layout>
           <AuthGuard>
             <Routes>

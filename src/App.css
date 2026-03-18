@@ -451,7 +451,8 @@
 
 /* Form Styles */
 .form-container {
-  max-width: 800px;
+  width: 100%;
+  max-width: 1500px;
   margin: 0 auto;
   padding: 32px 32px 48px;
   overflow: visible;
@@ -482,10 +483,28 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 40px;
-  padding: 24px;
+  padding: 28px;
   background: #FFFFFF;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #E5E7EB;
+}
+
+.stepper-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.stepper-rail {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+}
+
+.stepper-content {
+  min-width: 0;
 }
 
 .stepper-step {
@@ -493,14 +512,31 @@
   align-items: center;
 }
 
+.stepper.vertical {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  margin-bottom: 0;
+}
+
+.stepper-step-row {
+  display: flex;
+  align-items: center;
+}
+
+.stepper.vertical .stepper-step {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .stepper-circle {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   border: 2px solid #E5E7EB;
   color: #9CA3AF;
@@ -514,20 +550,25 @@
 }
 
 .stepper-circle.completed {
-  border-color: #10B981;
-  background: #10B981;
+  border-color: #F97316;
+  background: #F97316;
   color: #FFFFFF;
 }
 
 .stepper-label {
   margin-left: 12px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: #6B7280;
 }
 
 .stepper-label.active {
   color: #C64091;
+  font-weight: 600;
+}
+
+.stepper-label.completed {
+  color: #EA580C;
   font-weight: 600;
 }
 
@@ -539,10 +580,32 @@
 }
 
 .stepper-line.completed {
-  background: #10B981;
+  background: #F97316;
+}
+
+.stepper-line-vertical {
+  width: 2px;
+  height: 34px;
+  background: #E5E7EB;
+  margin-left: 21px;
+  margin-top: 12px;
+}
+
+.stepper-line-vertical.completed {
+  background: #F97316;
 }
 
 @media (max-width: 768px) {
+  .stepper-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .stepper-rail {
+    position: relative;
+    top: auto;
+  }
+
   .stepper {
     flex-wrap: wrap;
     gap: 16px;
@@ -550,8 +613,24 @@
   .stepper-line {
     display: none;
   }
+  .stepper-line-vertical {
+    display: none;
+  }
   .stepper-label {
     display: none;
+  }
+}
+
+@media (min-width: 1536px) {
+  .form-container {
+    max-width: 1600px;
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+
+  .stepper-layout {
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap: 40px;
   }
 }
 
