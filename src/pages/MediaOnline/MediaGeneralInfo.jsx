@@ -62,6 +62,21 @@ export default function MediaGeneralInfo() {
   const [loading, setLoading] = useState(true);
   const [productData, setProductData] = useState(null);
 
+    const mediaCategory = useMemo(() => {
+    return searchParams.get('mediaCategory') ||
+      sessionStorage.getItem('mediaCategory') ||
+      localStorage.getItem('mediaCategory') ||
+      '';
+  }, [searchParams]);
+
+  const filteredSubcategories = useMemo(() => {
+    const selectedCategory = subcategories.find(
+      (cat) => cat.categoryName === mediaCategory
+    );
+
+    return selectedCategory?.subCategories || [];
+  }, [subcategories, mediaCategory]);
+
   // Get journey and media category from URL params or storage
   const journey = useMemo(() => {
     return searchParams.get('journey') ||
@@ -70,19 +85,13 @@ export default function MediaGeneralInfo() {
       '';
   }, [searchParams]);
 
-  const mediaCategory = useMemo(() => {
-    return searchParams.get('mediaCategory') ||
-      sessionStorage.getItem('mediaCategory') ||
-      localStorage.getItem('mediaCategory') ||
-      '';
-  }, [searchParams]);
-
   // Static subcategories (used instead of API when available for this category)
   const staticSubcategories = useMemo(
     () => getMediaSubcategories(mediaCategory),
     [mediaCategory]
   );
-  const useStaticSubcategories = staticSubcategories.length > 0;
+  // const useStaticSubcategories = staticSubcategories.length > 0;
+  const useStaticSubcategories = false;
 
   const {
     register,
@@ -110,9 +119,10 @@ export default function MediaGeneralInfo() {
     }
     const fetchSubcategories = async () => {
       try {
-        const res = await api.get('/mediaonlinesub/Get_media_onlinesingle');
-        const data = res?.data || [];
-        setSubcategories(data);
+      const res = await api.get('/mediasubcategory/all'); // your new route
+      const data = res?.data?.data || [];
+
+      setSubcategories(data);
       } catch (error) {
         toast.error('Failed to load subcategories');
       } finally {
@@ -160,8 +170,28 @@ export default function MediaGeneralInfo() {
       return subcategoryId;
     if (productData?.ProductSubCategory === subcategoryId && productData?.ProductSubCategoryName)
       return productData.ProductSubCategoryName;
-    const found = subcategories.find((item) => item._id === subcategoryId);
-    return found?.Mediaonlinecategorysingle || subcategoryId;
+    const getSubcategoryName = (subcategoryId) => {
+      if (!subcategoryId) return '';
+
+      if (useStaticSubcategories && staticSubcategories.includes(subcategoryId))
+        return subcategoryId;
+
+      if (
+        productData?.ProductSubCategory === subcategoryId &&
+        productData?.ProductSubCategoryName
+      )
+        return productData.ProductSubCategoryName;
+
+          const selectedCategory = subcategories.find(
+      (cat) => cat.categoryName.toLowerCase() === mediaCategory.toLowerCase()
+    );
+
+    const found = selectedCategory?.subCategories?.find(
+      (sub) => sub._id === subcategoryId
+    );
+
+    return found?.subCategoryName || subcategoryId;
+      };
   };
 
   const onSubmit = async (data) => {
@@ -294,17 +324,25 @@ export default function MediaGeneralInfo() {
                             {name}
                           </SelectItem>
                         ))
-                    : subcategories
-                        .sort((a, b) =>
-                          (a.Mediaonlinecategorysingle || '')
-                            .toLowerCase()
-                            .localeCompare((b.Mediaonlinecategorysingle || '').toLowerCase())
-                        )
-                        .map((item) => (
+                    : filteredSubcategories
+                      .slice() // avoid mutating original
+                      .sort((a, b) =>
+                        (a.subCategoryName || '')
+                          .toLowerCase()
+                          .localeCompare((b.subCategoryName || '').toLowerCase())
+                      )
+                      .map((item) => {
+                        const formattedName =
+                          item.subCategoryName
+                            ?.toLowerCase()
+                            .replace(/\b\w/g, (char) => char.toUpperCase()) || '';
+
+                        return (
                           <SelectItem key={item._id} value={item._id}>
-                            {item.Mediaonlinecategorysingle}
+                            {formattedName}
                           </SelectItem>
-                        ))}
+                        );
+                      })}
                 </SelectContent>
               </Select>
               {errors.subcategory && (
