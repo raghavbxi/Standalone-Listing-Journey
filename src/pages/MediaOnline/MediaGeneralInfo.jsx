@@ -119,7 +119,7 @@ export default function MediaGeneralInfo() {
     }
     const fetchSubcategories = async () => {
       try {
-      const res = await api.get('/mediasubcategory/all'); // your new route
+      const res = await api.get('/mediasubcategory/all');
       const data = res?.data?.data || [];
 
       setSubcategories(data);
@@ -325,7 +325,7 @@ export default function MediaGeneralInfo() {
                           </SelectItem>
                         ))
                     : filteredSubcategories
-                      .slice() // avoid mutating original
+                      .slice() 
                       .sort((a, b) =>
                         (a.subCategoryName || '')
                           .toLowerCase()
