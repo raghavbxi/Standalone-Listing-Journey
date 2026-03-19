@@ -89,7 +89,7 @@ export default function DigitalScreensProductInfo() {
     if (!id) return;
     const fetchProduct = async () => {
       try {
-        const res = await api.get(`/product/get_product_byId/${id}`);
+        const res = await api.get(`product/get_product_byId/${id}`);
         const data = res?.data;
         setProductData(data);
         if (data?.tags?.length) setTags(data.tags);

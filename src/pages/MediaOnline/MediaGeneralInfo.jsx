@@ -23,6 +23,7 @@ import {
 } from '../../components/ui/tooltip';
 import { toast } from 'sonner';
 import api from '../../utils/api';
+import { getMediaSubcategories } from '../../config/mediaSubcategories';
 
 /**
  * Journey type determines the flow after general info:
@@ -76,6 +77,13 @@ export default function MediaGeneralInfo() {
       '';
   }, [searchParams]);
 
+  // Static subcategories (used instead of API when available for this category)
+  const staticSubcategories = useMemo(
+    () => getMediaSubcategories(mediaCategory),
+    [mediaCategory]
+  );
+  const useStaticSubcategories = staticSubcategories.length > 0;
+
   const {
     register,
     handleSubmit,
@@ -94,8 +102,12 @@ export default function MediaGeneralInfo() {
 
   const selectedSubcategory = watch('subcategory');
 
-  // Fetch subcategories
+  // Fetch subcategories from API only when not using static list (for fallback/editing)
   useEffect(() => {
+    if (useStaticSubcategories) {
+      setLoading(false);
+      return;
+    }
     const fetchSubcategories = async () => {
       try {
         const res = await api.get('/mediaonlinesub/Get_media_onlinesingle');
@@ -108,7 +120,7 @@ export default function MediaGeneralInfo() {
       }
     };
     fetchSubcategories();
-  }, []);
+  }, [useStaticSubcategories]);
 
   // Fetch existing product data if editing
   useEffect(() => {
@@ -121,7 +133,16 @@ export default function MediaGeneralInfo() {
         const data = res?.data;
         setProductData(data);
         if (data) {
-          setValue('subcategory', data.ProductSubCategory || '');
+          let subToSet = data.ProductSubCategory || '';
+          if (useStaticSubcategories) {
+            if (data.ProductSubCategoryName && staticSubcategories.includes(data.ProductSubCategoryName))
+              subToSet = data.ProductSubCategoryName;
+            else if (staticSubcategories.includes(subToSet))
+              subToSet = subToSet;
+            else
+              subToSet = '';
+          }
+          setValue('subcategory', subToSet);
           setValue('productname', data.ProductName || '');
           setValue('productsubtitle', data.ProductSubtitle || '');
           setValue('productdescription', data.ProductDescription || '');
@@ -131,11 +152,16 @@ export default function MediaGeneralInfo() {
       }
     };
     fetchProduct();
-  }, [id, location?.state?.id, setValue]);
+  }, [id, location?.state?.id, setValue, useStaticSubcategories, staticSubcategories]);
 
   const getSubcategoryName = (subcategoryId) => {
+    if (!subcategoryId) return '';
+    if (useStaticSubcategories && staticSubcategories.includes(subcategoryId))
+      return subcategoryId;
+    if (productData?.ProductSubCategory === subcategoryId && productData?.ProductSubCategoryName)
+      return productData.ProductSubCategoryName;
     const found = subcategories.find((item) => item._id === subcategoryId);
-    return found?.Mediaonlinecategorysingle || '';
+    return found?.Mediaonlinecategorysingle || subcategoryId;
   };
 
   const onSubmit = async (data) => {
@@ -172,19 +198,30 @@ export default function MediaGeneralInfo() {
 
       const res = await api.post('/product/product_mutation', payload);
       const responseData = res?.data;
+      // Product id: from response (top level or .body / .data) or use existing id when updating
+      const savedProductId =
+        responseData?._id ||
+        responseData?.body?._id ||
+        responseData?.data?._id ||
+        productId;
+
+      if (!savedProductId) {
+        toast.error('Save succeeded but product ID was not returned. Please try again or contact support.');
+        return;
+      }
 
       toast.success('General information saved!');
 
       // Route based on journey type (priority) or fallback to subcategory
       if (journey) {
-        const nextRoute = getJourneyRoute(journey, responseData._id);
+        const nextRoute = getJourneyRoute(journey, savedProductId);
         navigate(nextRoute);
       } else if (responseData?.ProductSubCategoryName === 'Digital ADs') {
-        navigate(`/mediaonline/mediaonlinedigitalscreensinfo/${responseData._id}`);
+        navigate(`/mediaonline/mediaonlinedigitalscreensinfo/${savedProductId}`);
       } else if (responseData?.ProductCategoryName === 'Multiplex ADs') {
-        navigate(`/mediaonline/mediaonlinemultiplexproductinfo/${responseData._id}`);
+        navigate(`/mediaonline/mediaonlinemultiplexproductinfo/${savedProductId}`);
       } else {
-        navigate(`/mediaonline/product-info/${responseData._id}`);
+        navigate(`/mediaonline/product-info/${savedProductId}`);
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to save. Please try again.');
@@ -212,7 +249,9 @@ export default function MediaGeneralInfo() {
       <div className="form-container">
         <div className="form-section">
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="form-section-title">General Information - Media Online</h2>
+            <h2 className="form-section-title">
+              General Information - {({ television: 'Television', multiplex: 'Multiplex', dooh: 'DOOH', radio: 'Radio', airport: 'Airport', other: 'Other' })[mediaCategory] || 'Media Online'}
+            </h2>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -246,17 +285,26 @@ export default function MediaGeneralInfo() {
                   <SelectValue placeholder="Select subcategory" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subcategories
-                    .sort((a, b) =>
-                      a.Mediaonlinecategorysingle.toLowerCase().localeCompare(
-                        b.Mediaonlinecategorysingle.toLowerCase()
-                      )
-                    )
-                    .map((item) => (
-                      <SelectItem key={item._id} value={item._id}>
-                        {item.Mediaonlinecategorysingle}
-                      </SelectItem>
-                    ))}
+                  {useStaticSubcategories
+                    ? staticSubcategories
+                        .slice()
+                        .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+                        .map((name) => (
+                          <SelectItem key={name} value={name}>
+                            {name}
+                          </SelectItem>
+                        ))
+                    : subcategories
+                        .sort((a, b) =>
+                          (a.Mediaonlinecategorysingle || '')
+                            .toLowerCase()
+                            .localeCompare((b.Mediaonlinecategorysingle || '').toLowerCase())
+                        )
+                        .map((item) => (
+                          <SelectItem key={item._id} value={item._id}>
+                            {item.Mediaonlinecategorysingle}
+                          </SelectItem>
+                        ))}
                 </SelectContent>
               </Select>
               {errors.subcategory && (
@@ -267,7 +315,7 @@ export default function MediaGeneralInfo() {
             {/* Product Name */}
             <div className="space-y-2">
               <Label htmlFor="productname">
-                Product Name <span className="text-red-500">*</span>
+                Media Name <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="productname"

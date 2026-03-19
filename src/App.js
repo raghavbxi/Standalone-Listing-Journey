@@ -2,7 +2,10 @@ import React from 'react';
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Provider } from 'react-redux';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { store } from './redux/store';
+
+const queryClient = new QueryClient();
 
 // Layout
 import { Layout } from './components/layout/Layout';
@@ -25,6 +28,8 @@ import ListingAccessGuard from './components/guards/ListingAccessGuard';
 
 // Media Online Components
 import MediaOnlineGeneralInfo from './pages/MediaOnline/MediaGeneralInfo';
+import MediaOnlineProductInfo from './pages/MediaOnline/MediaOnlineProductInfo';
+import MediaOnlineTechInfo from './pages/MediaOnline/MediaOnlineTechInfo';
 import MediaMultiplexProductInfo from './pages/MediaOnline/MediaMultiplexProductInfo';
 import MediaMultiplexTechInfo from './pages/MediaOnline/MediaMultiplexTechInfo';
 import DigitalScreensProductInfo from './pages/MediaOnline/DigitalScreensProductInfo';
@@ -33,15 +38,17 @@ import DigitalScreensGoLive from './pages/MediaOnline/DigitalScreensGoLive';
 
 // Media Offline Components
 import MediaOfflineGeneralInfo from './pages/MediaOffline/GeneralInformation';
+import MediaOfflineProductInfo from './pages/MediaOffline/MediaOfflineProductInfo';
 import HoardingProductInfo from './pages/MediaOffline/HoardingProductInfo';
 import HoardingTechInfo from './pages/MediaOffline/HoardingTechInfo';
 import HoardingsGoLive from './pages/MediaOffline/HoardingsGoLive';
+import MediaOfflineTechInfo from './pages/MediaOffline/MediaOfflineTechInfo';
 
 // Voucher Components
 import HotelsProductInfo from './pages/Vouchers/HotelsProductInfo';
 import VoucherTechInfo from './pages/Vouchers/VoucherTechInfo';
-import VoucherDesign from './pages/Vouchers/VoucherDesign';
-import VoucherGoLive from './pages/Vouchers/VoucherGoLive';
+import VoucherDesign from './pages/Vouchers/EditVoucherTemplate/Voucher';
+import VoucherGoLive from './pages/Vouchers/EditVoucherTemplate/Voucher';
 
 // Product Categories
 const productCategories = [
@@ -72,10 +79,10 @@ const bulkUploadCategories = [
 
 function App() {
   return (
-    <Provider store={store}>
-      <BrowserRouter>
-        <ScrollToTop />
-        <Layout>
+    <QueryClientProvider client={queryClient}>
+      <Provider store={store}>
+        <BrowserRouter>
+          <Layout>
           <AuthGuard>
             <Routes>
               {/* Root redirect to Seller Hub */}
@@ -247,7 +254,7 @@ function App() {
                 path="/mediaonline/product-info/:id"
                 element={
                   <ListingAccessGuard kind="product" category="mediaonline">
-                    <ProductInfo category="mediaonline" />
+                    <MediaOnlineProductInfo />
                   </ListingAccessGuard>
                 }
               />
@@ -255,7 +262,7 @@ function App() {
                 path="/mediaonline/tech-info/:id"
                 element={
                   <ListingAccessGuard kind="product" category="mediaonline">
-                    <TechInfo category="mediaonline" />
+                    <MediaOnlineTechInfo />
                   </ListingAccessGuard>
                 }
               />
@@ -297,7 +304,7 @@ function App() {
                 path="/mediaoffline/product-info/:id"
                 element={
                   <ListingAccessGuard kind="product" category="mediaoffline">
-                    <ProductInfo category="mediaoffline" />
+                    <MediaOfflineProductInfo />
                   </ListingAccessGuard>
                 }
               />
@@ -305,7 +312,7 @@ function App() {
                 path="/mediaoffline/tech-info/:id"
                 element={
                   <ListingAccessGuard kind="product" category="mediaoffline">
-                    <TechInfo category="mediaoffline" />
+                    <MediaOfflineTechInfo />
                   </ListingAccessGuard>
                 }
               />
@@ -328,7 +335,7 @@ function App() {
               <Route path="/mediaoffline/mediaofflinehoardinginfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingProductInfo /></ListingAccessGuard>} />
               <Route path="/mediaoffline/mediaofflinehoardingtechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingTechInfo /></ListingAccessGuard>} />
               <Route path="/mediaoffline/hoardingsgolive/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingsGoLive /></ListingAccessGuard>} />
-              <Route path="/mediaoffline/mediaofflineproductinfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><ProductInfo category="mediaoffline" /></ListingAccessGuard>} />
+              <Route path="/mediaoffline/mediaofflineproductinfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><MediaOfflineProductInfo /></ListingAccessGuard>} />
 
               {/* Voucher Routes */}
               <Route
@@ -541,9 +548,10 @@ function App() {
               <Route path="*" element={<Navigate to="/sellerhub" replace />} />
             </Routes>
           </AuthGuard>
-        </Layout>
-      </BrowserRouter>
-    </Provider>
+          </Layout>
+        </BrowserRouter>
+      </Provider>
+    </QueryClientProvider>
   );
 }
 

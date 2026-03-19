@@ -1,28 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CircleDollarSign, Check, Scale, Package } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { productApi, keyFeatureApi } from '../utils/api';
-import { toast } from 'sonner';
-import { cn } from '../lib/utils';
+import { Scale, Package, ArrowLeft, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from '../components/ui/carousel';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import {
+  Box,
+  Button,
+  Chip,
+  Paper,
+  Typography,
+  Skeleton,
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
-  TableHeader,
   TableRow,
-} from '../components/ui/table';
-import { Skeleton } from '../components/ui/skeleton';
+  Tabs,
+  Tab,
+  Stack,
+  Grid,
+  IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Popover,
+} from '@mui/material';
+import { productApi, keyFeatureApi } from '../utils/api';
+import { toast } from 'sonner';
 import BXIIcon from '../assets/BXI_COIN.png';
 
 const defaultImage =
@@ -66,19 +70,39 @@ function FeatureItem({ name, description }) {
   }, [name]);
   const showImg = iconUrl && !imgError;
   return (
-    <div className="flex items-start gap-4">
-      <div className="shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100">
+    <Stack direction="row" spacing={2} alignItems="flex-start">
+      <Box
+        sx={{
+          width: 40,
+          height: 40,
+          flexShrink: 0,
+          borderRadius: 1,
+          bgcolor: 'grey.100',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         {showImg ? (
-          <img src={iconUrl} alt={name} className="w-10 h-10 object-contain" onError={() => setImgError(true)} />
+          <img
+            src={iconUrl}
+            alt={name}
+            style={{ width: 40, height: 40, objectFit: 'contain' }}
+            onError={() => setImgError(true)}
+          />
         ) : (
-          <Package className="h-10 w-10 text-gray-500" />
+          <Package style={{ width: 24, height: 24, color: 'grey.500' }} />
         )}
-      </div>
-      <div>
-        <p className="font-medium text-gray-600">{name}</p>
-        <p className="text-gray-500 text-sm mt-0.5">{description}</p>
-      </div>
-    </div>
+      </Box>
+      <Box>
+        <Typography variant="body2" fontWeight="medium" color="text.secondary">
+          {name}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" display="block">
+          {description}
+        </Typography>
+      </Box>
+    </Stack>
   );
 }
 
@@ -92,28 +116,42 @@ function DiscountedPriceDisplay({ regularPrice, discountPrice, percentage }) {
   const gstAmount = disc - gstPrice;
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex flex-wrap items-baseline gap-2">
+    <Stack spacing={0.5}>
+      <Stack direction="row" flexWrap="wrap" alignItems="baseline" spacing={1}>
         {discountPercent > 0 && (
-          <span className="text-base font-bold text-red-600">
+          <Typography variant="body1" fontWeight="bold" color="error.main">
             -{discountPercent.toFixed(2)}%
-          </span>
+          </Typography>
         )}
-        <span className="text-2xl font-bold text-gray-900 md:text-3xl">
+        <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ fontSize: { md: '1.75rem' } }}>
           {formatPrice(disc)}
-        </span>
-        <span className="flex items-center gap-1 text-sm text-gray-500">
-          ({formatPrice(gstPrice)}
-          <img src={BXIIcon} alt="GST" className="h-4 w-4 inline" />
-          + {formatPrice(gstAmount)}₹ GST)
-        </span>
-      </div>
+        </Typography>
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <Typography variant="body2" color="text.secondary">
+            ({formatPrice(gstPrice)}
+          </Typography>
+          <img src={BXIIcon} alt="GST" style={{ height: 16, width: 16 }} />
+          <Typography variant="body2" color="text.secondary">
+            + {formatPrice(gstAmount)}₹ GST)
+          </Typography>
+        </Stack>
+      </Stack>
       {discountPercent > 0 && (
-        <span className="text-sm text-gray-400">
-          MRP: <span className="text-gray-400 line-through">{formatPrice(reg)}</span>
-        </span>
+        <Typography variant="body2" color="text.disabled">
+          MRP: <Typography component="span" sx={{ textDecoration: 'line-through' }}>{formatPrice(reg)}</Typography>
+        </Typography>
       )}
-      <span className="text-xs text-gray-500">All prices are inclusive of Taxes</span>
+      <Typography variant="caption" color="text.secondary">
+        All prices are inclusive of Taxes
+      </Typography>
+    </Stack>
+  );
+}
+
+function TabPanel({ children, value, index, ...rest }) {
+  return (
+    <div role="tabpanel" hidden={value !== index} {...rest}>
+      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
     </div>
   );
 }
@@ -125,7 +163,9 @@ export default function ProductPreview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
-  const [showSizeChart, setShowSizeChart] = useState(false);
+  const [tabValue, setTabValue] = useState(0);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [sizeChartAnchor, setSizeChartAnchor] = useState(null);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -145,7 +185,7 @@ export default function ProductPreview() {
         if (cancelled) return;
         setProduct(data);
         const variants = data?.ProductsVariantions ?? [];
-        if (variants.length > 0) {
+        if (variants?.length > 0) {
           setSelectedVariant(variants[0]?._id ?? variants[0]?.id);
         }
       })
@@ -192,57 +232,88 @@ export default function ProductPreview() {
   const selectedVariantData = variants.find(
     (v) => (v._id ?? v.id) === selectedVariant
   );
-  const images = product?.ProductImages ?? [];
+
+  const images = product?.ListingType === 'Product' ? product?.ProductImages  : product?.ListingType === "Media" ?  product?.ProductImages : product?.VoucherImages || [];
   const sizeChartUrl = product?.SizeChart?.[0]?.url;
   const canShowUpload =
     product?.ProductUploadStatus !== 'Approved' &&
     product?.ProductUploadStatus !== 'pendingapproval' &&
-    images.length > 0;
+    images?.length > 0;
+
+  const primaryColor = '#C64091';
+  const primaryDark = '#A03375';
 
   if (loading) {
     return (
-      <div className="w-full min-h-screen bg-[#f8fafc] py-6 pb-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto w-full">
-          <Skeleton className="h-10 w-48 mb-6" />
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-              <Skeleton className="aspect-square" />
-              <div className="p-6 md:p-8 space-y-4">
-                <Skeleton className="h-8 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-12 w-1/3" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Box
+        sx={{
+          minHeight: '100vh',
+          bgcolor: '#f8fafc',
+          py: 3,
+          pb: 6,
+          px: { xs: 2, sm: 3, lg: 4 },
+        }}
+      >
+        <Box sx={{ maxWidth: 1152, mx: 'auto', width: '100%' }}>
+          <Skeleton variant="rectangular" height={40} width={192} sx={{ mb: 3 }} />
+          <Paper elevation={0} sx={{ overflow: 'hidden', border: '1px solid', borderColor: 'grey.200' }}>
+            <Grid container>
+              <Grid item xs={12} md={6}>
+                <Skeleton variant="rectangular" sx={{ aspectRatio: '1' }} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Box sx={{ p: { xs: 3, md: 4 } }}>
+                  <Stack spacing={2}>
+                    <Skeleton variant="text" width="75%" height={32} />
+                    <Skeleton variant="text" width="50%" height={24} />
+                    <Skeleton variant="text" width="33%" height={48} />
+                  </Stack>
+                </Box>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Box>
+      </Box>
     );
   }
 
   if (error || !product) {
     return (
-      <div className="w-full min-h-screen bg-[#f8fafc] py-6 pb-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto w-full">
+      <Box
+        sx={{
+          minHeight: '100vh',
+          bgcolor: '#f8fafc',
+          py: 3,
+          pb: 6,
+          px: { xs: 2, sm: 3, lg: 4 },
+        }}
+      >
+        <Box sx={{ maxWidth: 1152, mx: 'auto', width: '100%' }}>
           <Button
-            variant="ghost"
+            startIcon={<ArrowLeft size={20} />}
             onClick={() => navigate('/sellerhub')}
-            className="mb-6 text-gray-600 hover:text-[#C64091]"
+            sx={{ mb: 3, color: 'grey.600', '&:hover': { color: primaryColor, bgcolor: 'transparent' } }}
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
             Back to My Products
           </Button>
-          <div className="bg-white rounded-xl shadow-sm border border-red-200 p-8 text-center">
-            <p className="text-red-600 font-medium">{error || 'Product not found'}</p>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/sellerhub')}
-              className="mt-4"
-            >
+          <Paper
+            elevation={0}
+            sx={{
+              p: 4,
+              textAlign: 'center',
+              border: '1px solid',
+              borderColor: 'error.light',
+            }}
+          >
+            <Typography color="error" fontWeight="medium" sx={{ mb: 2 }}>
+              {error || 'Product not found'}
+            </Typography>
+            <Button variant="outlined" onClick={() => navigate('/sellerhub')}>
               Go to Seller Hub
             </Button>
-          </div>
-        </div>
-      </div>
+          </Paper>
+        </Box>
+      </Box>
     );
   }
 
@@ -251,670 +322,651 @@ export default function ProductPreview() {
       product?.ProductCategoryName
     ) || !product?.ProductCategoryName;
 
+  const tableHeadings = [
+    'Disc. MRP',
+    'Sizes',
+    'Min QTY',
+    'Max QTY',
+    'GST',
+    'HSN',
+    'Product Size',
+    'Product ID',
+  ];
+
   return (
-    <div className="w-full min-h-screen bg-[#f8fafc] py-6 pb-12 px-4 sm:px-6 lg:px-8" data-testid="product-preview-page">
-      <div className="max-w-6xl mx-auto w-full">
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: '#f8fafc',
+        py: 3,
+        pb: 6,
+        px: { xs: 2, sm: 3, lg: 4 },
+      }}
+      data-testid="product-preview-page"
+    >
+      <Box sx={{ maxWidth: '100vw', mx: 'auto', width: '100%' }}>
         {/* Header */}
-        <div className="flex items-center justify-center relative py-6 border-b border-gray-100">
-          <Button
-            variant="ghost"
-            size="icon"
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            py: 3,
+            borderBottom: '1px solid',
+            borderColor: 'grey.100',
+          }}
+        >
+          <IconButton
             onClick={product?.ProductUploadStatus === 'Approved' ? () => navigate('/sellerhub') : handleBack}
-            className="absolute left-0 text-gray-600 hover:text-[#C64091]"
+            sx={{
+              position: 'absolute',
+              left: 0,
+              color: 'grey.600',
+              '&:hover': { color: primaryColor },
+            }}
           >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-lg font-semibold text-gray-900">Preview Page</h1>
-        </div>
+            <ArrowLeft size={24} />
+          </IconButton>
+          <Typography variant="h6" fontWeight="600" color="text.primary">
+            Preview Page
+          </Typography>
+        </Box>
 
         {/* Main content */}
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
+        <Grid container spacing={4} sx={{ mt: 3 }}>
           {/* Image carousel */}
-          <div className="flex flex-col items-center">
-            {images.length === 0 ? (
-              <div className="w-full aspect-square max-w-[450px] rounded-2xl border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
-                <p className="text-gray-500 font-medium">No Image Uploaded</p>
-              </div>
-            ) : (
-              <Carousel className="w-full max-w-[450px]">
-                <CarouselContent>
-                  {images.map((img, idx) => (
-                    <CarouselItem key={idx}>
-                      <div
-                        className="aspect-square rounded-2xl bg-cover bg-center bg-no-repeat"
-                        style={{
-                          backgroundImage: `url(${img?.url || defaultImage})`,
+          <Grid item xs={12} lg={6}>
+            <Stack alignItems="center">
+              {images?.length === 0 ? (
+                <Box
+                  sx={{
+                    width: '100%',
+                    maxWidth: 450,
+                    aspectRatio: '1',
+                    borderRadius: 2,
+                    border: '2px dashed',
+                    borderColor: 'grey.300',
+                    bgcolor: 'grey.50',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Typography color="text.secondary" fontWeight="medium">
+                    No Image Uploaded
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ width: '100%', maxWidth: 450, position: 'relative' }}>
+                  <Box
+                    sx={{
+                      aspectRatio: '1',
+                      borderRadius: 2,
+                      backgroundSize: product?.ListingType === 'Product' ? 'cover' : 'contain',
+                      backgroundPosition: product?.ListingType === 'Product' ? 'center' : 'center',
+                      backgroundRepeat: product?.ListingType === 'Product' ? 'no-repeat' : 'no-repeat',
+                      backgroundImage: `url(${images?.[carouselIndex]?.url || defaultImage})`,
+                    }}
+                  />
+                  {images?.length > 1 && (
+                    <>
+                      <IconButton
+                        onClick={() => setCarouselIndex((i) => (i === 0 ? images?.length - 1 : i - 1))}
+                        sx={{
+                          position: 'absolute',
+                          left: 8,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          bgcolor: 'rgba(255,255,255,0.9)',
+                          '&:hover': { bgcolor: 'white' },
                         }}
-                      />
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                {images.length > 1 && (
-                  <>
-                    <CarouselPrevious className="left-0" />
-                    <CarouselNext className="right-0" />
-                  </>
-                )}
-              </Carousel>
-            )}
-          </div>
+                      >
+                        <ChevronLeft size={24} />
+                      </IconButton>
+                      <IconButton
+                        onClick={() => setCarouselIndex((i) => (i === images?.length - 1 ? 0 : i + 1))}
+                        sx={{
+                          position: 'absolute',
+                          right: 8,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          bgcolor: 'rgba(255,255,255,0.9)',
+                          '&:hover': { bgcolor: 'white' },
+                        }}
+                      >
+                        <ChevronRight size={24} />
+                      </IconButton>
+                    </>
+                  )}
+                </Box>
+              )}
+            </Stack>
+          </Grid>
 
           {/* Product info */}
-          <div className="flex flex-col gap-4">
-            <div>
-              <Badge
-                className={cn(
-                  product?.ProductUploadStatus === 'Approved'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-amber-100 text-amber-700'
-                )}
-              >
-                {product?.ProductUploadStatus || 'Draft'}
-              </Badge>
-              <h1
-                className="mt-2 text-xl font-semibold text-gray-900 md:text-2xl"
-                data-testid="product-name"
-              >
-                {product?.ProductName}
-              </h1>
-              <p className="text-gray-500 text-sm mt-1">
-                {[product?.ProductCategoryName, product?.ProductSubCategoryName].filter(Boolean).join(' / ')}
-              </p>
-            </div>
+          <Grid item xs={12} lg={6}>
+            <Stack spacing={2}>
+              <Box>
+                <Chip
+                  label={product?.ProductUploadStatus || 'Draft'}
+                  size="small"
+                  sx={{
+                    mb: 1,
+                    bgcolor: product?.ProductUploadStatus === 'Approved' ? 'success.light' : 'warning.light',
+                    color: product?.ProductUploadStatus === 'Approved' ? 'success.dark' : 'warning.dark',
+                  }}
+                />
+                <Typography variant="h5" fontWeight="600" color="text.primary" data-testid="product-name" sx={{ mt: 1 }}>
+                  {product?.ProductName}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {[product?.ProductCategoryName, product?.ProductSubCategoryName].filter(Boolean).join(' / ')}
+                </Typography>
+              </Box>
 
-            {variants.length > 1 && (
-              <div>
-                <label className="text-sm font-semibold text-gray-700 block mb-2">
-                  Select Variant
-                </label>
-                <select
-                  value={selectedVariant ?? ''}
-                  onChange={(e) => setSelectedVariant(e.target.value)}
-                  className="w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C64091]"
-                >
-                  {variants.map((v) => (
-                    <option key={v._id ?? v.id} value={v._id ?? v.id}>
-                      ID: {v.ProductIdType || 'N/A'} /{' '}
-                      {v.ProductSize || v.flavor || v.NutritionInfo || 'N/A'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <DiscountedPriceDisplay
-              regularPrice={selectedVariantData?.PricePerUnit}
-              discountPrice={selectedVariantData?.DiscountedPrice}
-              percentage={selectedVariantData?.GST}
-            />
-
-            {/* Colors */}
-            {product?.ProductCategoryName !== 'QSR' &&
-              product?.ProductCategoryName !== 'FMCG' &&
-              selectedVariantData?.ProductColor && (
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">Colors</p>
-                  <div
-                    className="w-10 h-10 rounded-xl border-2 border-gray-300"
-                    style={{ backgroundColor: selectedVariantData.ProductColor }}
-                  />
-                </div>
+              {variants?.length > 1 && (
+                <FormControl size="small" sx={{ minWidth: 280 }}>
+                  <InputLabel>Select Variant</InputLabel>
+                  <Select
+                    value={selectedVariant ?? ''}
+                    label="Select Variant"
+                    onChange={(e) => setSelectedVariant(e.target.value)}
+                  >
+                    {variants?.map((v) => (
+                      <MenuItem key={v._id ?? v.id} value={v._id ?? v.id}>
+                        ID: {v.ProductIdType || 'N/A'} / {v.ProductSize || v.flavor || v.NutritionInfo || 'N/A'}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               )}
 
-            {product?.gender && (
-              <div>
-                <p className="text-sm font-medium text-gray-600">Gender</p>
-                <p className="text-gray-900 capitalize">{product.gender}</p>
-              </div>
-            )}
+              <DiscountedPriceDisplay
+                regularPrice={selectedVariantData?.PricePerUnit}
+                discountPrice={selectedVariantData?.DiscountedPrice}
+                percentage={selectedVariantData?.GST}
+              />
 
-            {/* Variant table */}
-            {selectedVariantData && (
-              <div className="mt-6 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="text-center bg-gray-100">
-                      {[
-                        "Disc. MRP",
-                        "Sizes",
-                        "Min QTY",
-                        "Max QTY",
-                        "GST",
-                        "HSN",
-                        "Product Size",
-                        "Product ID",
-                      ].map((heading) => (
-                        <TableHead
-                          key={heading}
-                          className="text-center text-xs font-semibold uppercase tracking-wide text-gray-600"
-                        >
-                          {heading}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
+              {product?.ProductCategoryName !== 'QSR' &&
+                product?.ProductCategoryName !== 'FMCG' &&
+                selectedVariantData?.ProductColor && (
+                  <Box>
+                    <Typography variant="body2" fontWeight="medium" color="text.secondary" sx={{ mb: 1 }}>
+                      Colors
+                    </Typography>
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 2,
+                        border: '2px solid',
+                        borderColor: 'grey.300',
+                        bgcolor: selectedVariantData.ProductColor,
+                      }}
+                    />
+                  </Box>
+                )}
 
-                  <TableBody>
-                    <TableRow className="hover:bg-gray-50 transition-colors duration-200">
-                      {/* Discounted Price */}
-                      <TableCell className="text-center py-4">
-                        <div className="flex items-center justify-center gap-2 font-semibold text-gray-900">
-                          <Check className="h-4 w-4 text-green-600 shrink-0" />
-                          <img src={BXIIcon} alt="BXI" className="h-4 w-4" />
-                          <span className="text-base">
-                            {formatPrice(selectedVariantData.DiscountedPrice) || "N/A"}
-                          </span>
-                        </div>
-                      </TableCell>
+              {product?.gender && (
+                <Box>
+                  <Typography variant="body2" fontWeight="medium" color="text.secondary">
+                    Gender
+                  </Typography>
+                  <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
+                    {product.gender}
+                  </Typography>
+                </Box>
+              )}
 
-                      {/* Size */}
-                      <TableCell className="text-center py-4 text-sm text-gray-700">
-                        {selectedVariantData.ShoeSize != null
-                          ? `${selectedVariantData.ShoeSize} ${selectedVariantData.MeasurementUnit || ""}`
-                          : selectedVariantData.ProductSize ||
-                            selectedVariantData.NutritionInfo ||
-                            (selectedVariantData.length &&
-                            selectedVariantData.MeasurementUnit
-                              ? `${selectedVariantData.length} ${selectedVariantData.MeasurementUnit}`
-                              : "N/A")}
-                      </TableCell>
+              {/* Variant table */}
+              {selectedVariantData && (
+                <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: 'grey.100' }}>
+                        {tableHeadings.map((heading) => (
+                          <TableCell key={heading} align="center" sx={{ fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>
+                            {heading}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+                            <Box component="span" sx={{ color: 'success.main', display: 'flex' }}>
+                              <Check size={20} />
+                            </Box>
+                            <img src={BXIIcon} alt="BXI" style={{ height: 16, width: 16 }} />
+                            <Typography variant="body2" fontWeight="600">
+                              {formatPrice(selectedVariantData.DiscountedPrice) || 'N/A'}
+                            </Typography>
+                          </Stack>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Typography variant="body2">
+                            {selectedVariantData.ShoeSize != null
+                              ? `${selectedVariantData.ShoeSize} ${selectedVariantData.MeasurementUnit || ''}`
+                              : selectedVariantData.ProductSize ||
+                                selectedVariantData.NutritionInfo ||
+                                (selectedVariantData?.length && selectedVariantData?.MeasurementUnit
+                                  ? `${selectedVariantData?.length} ${selectedVariantData?.MeasurementUnit}`
+                                  : 'N/A')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Chip label={selectedVariantData.MinOrderQuantity ?? 'N/A'} size="small" color="primary" variant="outlined" />
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Chip label={selectedVariantData.MaxOrderQuantity ?? 'N/A'} size="small" color="primary" variant="outlined" />
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Typography variant="body2">
+                            {selectedVariantData.GST ? `${selectedVariantData.GST}%` : 'N/A'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Typography variant="body2">{selectedVariantData.HSN ?? 'N/A'}</Typography>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Typography variant="body2">{selectedVariantData.ProductSize ?? 'N/A'}</Typography>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Typography variant="body2">{selectedVariantData.ProductIdType ?? 'N/A'}</Typography>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
 
-                      {/* Min QTY */}
-                      <TableCell className="text-center py-4">
-                        <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium">
-                          {selectedVariantData.MinOrderQuantity ?? "N/A"}
-                        </span>
-                      </TableCell>
-
-                      {/* Max QTY */}
-                      <TableCell className="text-center py-4">
-                        <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium">
-                          {selectedVariantData.MaxOrderQuantity ?? "N/A"}
-                        </span>
-                      </TableCell>
-
-                      {/* GST */}
-                      <TableCell className="text-center py-4 text-sm font-medium text-gray-700">
-                        {selectedVariantData.GST
-                          ? `${selectedVariantData.GST}%`
-                          : "N/A"}
-                      </TableCell>
-
-                      {/* HSN */}
-                      <TableCell className="text-center py-4 text-sm text-gray-600">
-                        {selectedVariantData.HSN ?? "N/A"}
-                      </TableCell>
-
-                      {/* Product Size */}
-                      <TableCell className="text-center py-4 text-sm text-gray-600">
-                        {selectedVariantData.ProductSize ?? "N/A"}
-                      </TableCell>
-
-                      {/* Product ID */}
-                      <TableCell className="text-center py-4 text-sm text-gray-600">
-                        {selectedVariantData.ProductIdType ?? "N/A"}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-
-            {/* Size chart */}
-            {(isTextileStyle || product?.ProductCategoryName === 'Textile') && (
-              <div className="relative inline-block">
-                <button
-                  type="button"
-                  className="text-[#1A56DB] font-semibold text-sm hover:underline"
-                  onMouseEnter={() => setShowSizeChart(true)}
-                  onMouseLeave={() => setShowSizeChart(false)}
-                >
-                  Size Chart
-                </button>
-                {showSizeChart && (
-                  <div
-                    className="absolute left-0 top-full z-20 mt-2 bg-white rounded-lg shadow-lg p-2 border border-gray-200"
-                    onMouseEnter={() => setShowSizeChart(true)}
-                    onMouseLeave={() => setShowSizeChart(false)}
+              {/* Size chart */}
+              {(isTextileStyle || product?.ProductCategoryName === 'Textile') && (
+                <Box>
+                  <Typography
+                    component="button"
+                    variant="body2"
+                    fontWeight="600"
+                    sx={{
+                      color: '#1A56DB',
+                      cursor: 'pointer',
+                      border: 'none',
+                      background: 'none',
+                      '&:hover': { textDecoration: 'underline' },
+                    }}
+                    onMouseEnter={(e) => setSizeChartAnchor(e.currentTarget)}
+                    onMouseLeave={() => setSizeChartAnchor(null)}
+                  >
+                    Size Chart
+                  </Typography>
+                  <Popover
+                    open={Boolean(sizeChartAnchor)}
+                    anchorEl={sizeChartAnchor}
+                    onClose={() => setSizeChartAnchor(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                    onMouseEnter={() => setSizeChartAnchor(sizeChartAnchor)}
+                    onMouseLeave={() => setSizeChartAnchor(null)}
+                    slotProps={{ paper: { sx: { mt: 1.5, p: 1 } } }}
                   >
                     {sizeChartUrl ? (
                       <img
                         src={sizeChartUrl}
                         alt="Size chart"
-                        className="h-[300px] w-auto object-contain max-w-[400px]"
+                        style={{ maxHeight: 300, width: 'auto', maxWidth: 400, objectFit: 'contain' }}
                       />
                     ) : (
-                      <p className="text-gray-500 text-sm px-4 py-2">Size Chart Unavailable</p>
+                      <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 1 }}>
+                        Size Chart Unavailable
+                      </Typography>
                     )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+                  </Popover>
+                </Box>
+              )}
+            </Stack>
+          </Grid>
+        </Grid>
 
         {/* Tabs */}
-        <div className="mt-10 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <Tabs defaultValue="1" className="w-full">
-            <TabsList className="w-full justify-start border-b bg-gray-50 px-4 h-14 gap-8">
-              <TabsTrigger
-                value="1"
-                className="relative pb-3 text-sm font-medium text-gray-600 
-                data-[state=active]:text-[#1E40AF] 
-                data-[state=active]:after:absolute 
-                data-[state=active]:after:-bottom-[1px] 
-                data-[state=active]:after:left-0 
-                data-[state=active]:after:h-[3px] 
-                data-[state=active]:after:w-full 
-                data-[state=active]:after:bg-[#1E40AF]"
-              >
-                Description
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="2"
-                className="relative pb-3 text-sm font-medium text-gray-600 
-                data-[state=active]:text-[#1E40AF] 
-                data-[state=active]:after:absolute 
-                data-[state=active]:after:-bottom-[1px] 
-                data-[state=active]:after:left-0 
-                data-[state=active]:after:h-[3px] 
-                data-[state=active]:after:w-full 
-                data-[state=active]:after:bg-[#1E40AF]"
-              >
-                Technical Information
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="3"
-                className="relative pb-3 text-sm font-medium text-gray-600 
-                data-[state=active]:text-[#1E40AF] 
-                data-[state=active]:after:absolute 
-                data-[state=active]:after:-bottom-[1px] 
-                data-[state=active]:after:left-0 
-                data-[state=active]:after:h-[3px] 
-                data-[state=active]:after:w-full 
-                data-[state=active]:after:bg-[#1E40AF]"
-              >
-                Key Features
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="p-6">
-            <TabsContent value="1" className="mt-4">
+        <Paper elevation={0} sx={{ mt: 5, border: '1px solid', borderColor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
+          <Tabs
+            value={tabValue}
+            onChange={(_, v) => setTabValue(v)}
+            sx={{
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'grey.50',
+              px: 2,
+              minHeight: 56,
+              '& .MuiTab-root': { fontWeight: 500, textTransform: 'none' },
+              '& .Mui-selected': { color: '#1E40AF', fontWeight: 600 },
+              '& .MuiTabs-indicator': { backgroundColor: '#1E40AF', height: 3 },
+            }}
+          >
+            <Tab label="Description" />
+            <Tab label="Technical Information" />
+            <Tab label="Key Features" />
+          </Tabs>
+          <Box sx={{ p: 3 }}>
+            <TabPanel value={tabValue} index={0}>
               {(() => {
                 const loc = product?.LocationDetails || product?.locationDetails || {};
-                const hasLoc =
-                  loc.region || loc.state || loc.city || loc.landmark || loc.pincode;
-
+                const hasLoc = loc.region || loc.state || loc.city || loc.landmark || loc.pincode;
                 return (
-                  <div className="space-y-6">
-
-                    {/* Product Description */}
-                    <div>
-                      <p className="text-sm font-semibold text-[#1E40AF] mb-1">
+                  <Stack spacing={3}>
+                    <Box>
+                      <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
                         Product Description
-                      </p>
-                      <p className="text-gray-700 leading-relaxed">
+                      </Typography>
+                      <Typography variant="body1" color="text.secondary">
                         {product?.ProductSubtittle ||
                           product?.ProductSubtitle ||
                           product?.ProductDescription ||
-                          "No description available."}
-                      </p>
-                    </div>
-
+                          'No description available.'}
+                      </Typography>
+                    </Box>
                     {product?.ModelName && (
-                      <div>
-                        <p className="text-sm font-semibold text-[#1E40AF] mb-1">
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
                           Model Name
-                        </p>
-                        <p className="text-gray-700">
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
                           {product.ModelName}
-                        </p>
-                      </div>
+                        </Typography>
+                      </Box>
                     )}
-
-                    {/* Sample Details */}
-                    <div>
-                      <p className="text-sm font-semibold text-[#1E40AF] mb-2">
+                    <Box>
+                      <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
                         Sample Details
-                      </p>
-                      <p className="text-gray-700">
-                        Sample Available :{" "}
-                        <span className="font-medium">
-                          {variants.some((v) => v.SampleAvailability) ? "Yes" : "No"}
-                        </span>
-                      </p>
-                    </div>
-
-                    {/* Product Pickup Location */}
+                      </Typography>
+                      <Typography variant="body1" color="text.secondary">
+                        Sample Available : <Typography component="span" fontWeight="medium">{variants.some((v) => v.SampleAvailability) ? 'Yes' : 'No'}</Typography>
+                      </Typography>
+                    </Box>
                     {hasLoc && (
-                      <div>
-                        <p className="text-sm font-semibold text-[#1E40AF] mb-3 mt-4">
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 2, mt: 2 }}>
                           Product Pickup Location & Pincode
-                        </p>
-
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-4">
+                        </Typography>
+                        <Grid container spacing={2}>
                           {loc.region && (
-                            <div>
-                              <p className="text-xs text-gray-500">Region</p>
-                              <p className="text-gray-700 mt-1">{loc.region}</p>
-                            </div>
+                            <Grid item xs={6} md={4}>
+                              <Typography variant="caption" color="text.secondary">Region</Typography>
+                              <Typography variant="body2" display="block">{loc.region}</Typography>
+                            </Grid>
                           )}
                           {loc.state && (
-                            <div>
-                              <p className="text-xs text-gray-500">State</p>
-                              <p className="text-gray-700 mt-1">{loc.state}</p>
-                            </div>
+                            <Grid item xs={6} md={4}>
+                              <Typography variant="caption" color="text.secondary">State</Typography>
+                              <Typography variant="body2" display="block">{loc.state}</Typography>
+                            </Grid>
                           )}
                           {loc.city && (
-                            <div>
-                              <p className="text-xs text-gray-500">City</p>
-                              <p className="text-gray-700 mt-1">{loc.city}</p>
-                            </div>
+                            <Grid item xs={6} md={4}>
+                              <Typography variant="caption" color="text.secondary">City</Typography>
+                              <Typography variant="body2" display="block">{loc.city}</Typography>
+                            </Grid>
                           )}
                           {loc.landmark && (
-                            <div>
-                              <p className="text-xs text-gray-500">Landmark</p>
-                              <p className="text-gray-700 mt-1">{loc.landmark}</p>
-                            </div>
+                            <Grid item xs={6} md={4}>
+                              <Typography variant="caption" color="text.secondary">Landmark</Typography>
+                              <Typography variant="body2" display="block">{loc.landmark}</Typography>
+                            </Grid>
                           )}
                           {loc.pincode && (
-                            <div>
-                              <p className="text-xs text-gray-500">Pincode</p>
-                              <p className="text-gray-700 mt-1">{loc.pincode}</p>
-                            </div>
+                            <Grid item xs={6} md={4}>
+                              <Typography variant="caption" color="text.secondary">Pincode</Typography>
+                              <Typography variant="body2" display="block">{loc.pincode}</Typography>
+                            </Grid>
                           )}
-                        </div>
-                      </div>
+                        </Grid>
+                      </Box>
                     )}
-
-                    {/* Listing Period */}
                     {product?.listperiod && (
-                      <div>
-                        <p className="text-sm font-semibold text-[#1E40AF] mb-1 mt-4">
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5, mt: 2 }}>
                           This product is listed for
-                        </p>
-                        <p className="text-gray-700">
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
                           {product.listperiod} Days
-                        </p>
-                      </div>
+                        </Typography>
+                      </Box>
                     )}
-
-                    {/* Additional Cost */}
-                    <div>
-                      <p className="text-sm font-semibold text-[#1E40AF] mb-3">
+                    <Box>
+                      <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
                         Additional Cost
-                      </p>
-
+                      </Typography>
                       {product?.OtherCost?.length > 0 ? (
-                        <div className="space-y-3">
+                        <Stack spacing={1.5}>
                           {product.OtherCost.map((cost, i) => (
-                            <div
-                              key={i}
-                              className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-700"
-                            >
-                              <span>
-                                <span className="text-gray-500">Applicable on:</span>{" "}
-                                {cost.AdCostApplicableOn}
-                              </span>
-                              <span>
-                                <span className="text-gray-500">Reason:</span>{" "}
-                                {cost.ReasonOfCost}
-                              </span>
-                              <span>
-                                <span className="text-gray-500">HSN:</span>{" "}
-                                {cost.AdCostHSN}
-                              </span>
-                              <span>
-                                <span className="text-gray-500">GST:</span>{" "}
-                                {cost.AdCostGST}%
-                              </span>
-                              <span>
-                                <span className="text-gray-500">Cost:</span>{" "}
-                                <span className="font-medium">
-                                  {formatPrice(cost.CostPrice)}{" "}
-                                  {cost.currencyType === "BXITokens" ? "BXI" : "₹"}
-                                </span>
-                              </span>
-                            </div>
+                            <Stack key={i} direction="row" flexWrap="wrap" spacing={2} useFlexGap>
+                              <Typography variant="body2" color="text.secondary">
+                                <Typography component="span" color="text.disabled">Applicable on:</Typography> {cost.AdCostApplicableOn}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                <Typography component="span" color="text.disabled">Reason:</Typography> {cost.ReasonOfCost}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                <Typography component="span" color="text.disabled">HSN:</Typography> {cost.AdCostHSN}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                <Typography component="span" color="text.disabled">GST:</Typography> {cost.AdCostGST}%
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                <Typography component="span" color="text.disabled">Cost:</Typography>{' '}
+                                <Typography component="span" fontWeight="medium">
+                                  {formatPrice(cost.CostPrice)} {cost.currencyType === 'BXITokens' ? 'BXI' : '₹'}
+                                </Typography>
+                              </Typography>
+                            </Stack>
                           ))}
-                        </div>
+                        </Stack>
                       ) : (
-                        <p className="text-gray-700">No</p>
+                        <Typography variant="body1" color="text.secondary">No</Typography>
                       )}
-                    </div>
-
-                    {/* Manufacturing & Expiry */}
+                    </Box>
                     {(product?.ManufacturingDate || product?.ManufacturingData) && (
-                      <div className="flex flex-wrap gap-10">
-                        <div>
-                          <p className="text-sm font-semibold text-[#1E40AF] mb-1 mt-4">
+                      <Stack direction="row" flexWrap="wrap" spacing={4}>
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5, mt: 2 }}>
                             Manufacturing Date
-                          </p>
-                          <p className="text-gray-700">
-                            {new Date(
-                              product.ManufacturingDate || product.ManufacturingData
-                            ).toLocaleDateString()}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-sm font-semibold text-[#1E40AF] mb-1 mt-4">
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            {new Date(product.ManufacturingDate || product.ManufacturingData).toLocaleDateString()}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5, mt: 2 }}>
                             Expiry Date
-                          </p>
-                          <p className="text-gray-700">
-                            {product?.ExpiryDate
-                              ? new Date(product.ExpiryDate).toLocaleDateString()
-                              : "Not Given"}
-                          </p>
-                        </div>
-                      </div>
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            {product?.ExpiryDate ? new Date(product.ExpiryDate).toLocaleDateString() : 'Not Given'}
+                          </Typography>
+                        </Box>
+                      </Stack>
                     )}
-
-                  </div>
+                  </Stack>
                 );
-                })()}
-              </TabsContent>
+              })()}
+            </TabPanel>
 
-
-              <TabsContent value="2" className="mt-0">
-                {(() => {
-                  const ti = product?.ProductTechInfo;
-                  const hasAny =
-                    ti?.WeightBeforePackingPerUnit ||
-                    ti?.WeightAfterPackingPerUnit ||
-                    ti?.Height ||
-                    ti?.Width ||
-                    ti?.Length ||
-                    ti?.Warranty ||
-                    ti?.GuaranteePeriod ||
-                    ti?.PackagingDetails ||
-                    ti?.LegalCompliance ||
-                    ti?.PackagingType ||
-                    ti?.UsageInstructions ||
-                    ti?.CareInstructions ||
-                    ti?.SafetyWarnings || 
-                    ti?.Certifications; 
-                  
-                  if (!hasAny) {
-                    return <p className="text-gray-500">No technical information available.</p>;
-                  }
-                  
-                  return (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {ti?.Warranty && (
-                          <div>
-                            <p className="text-base font-semibold text-[#1E40AF] mb-2">Warranty</p>
-                            <p className="font-medium text-gray-900 mt-1">{ti.Warranty}</p>
-                          </div>
-                        )}
-                        {ti?.GuaranteePeriod && (
-                          <div>
-                            <p className="text-base font-semibold text-[#1E40AF] mb-2">Guarantee Period</p>
-                            <p className="font-medium text-gray-900 mt-1">{ti.GuaranteePeriod}</p>
-                          </div>
-                        )}
-                      </div>
-
-                      {(ti?.Height || ti?.Width || ti?.Length) && (
-                        <div>
-                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Dimensions</p>
-                          <div className="grid grid-cols-3 gap-4">
-                            {ti?.Height && (
-                              <div>
-                                <p className="text-sm text-gray-600">Height</p>
-                                <p className="font-medium text-gray-900">{ti.Height}</p>
-                              </div>
-                            )}
-                            {ti?.Width && (
-                              <div>
-                                <p className="text-sm text-gray-600">Width</p>
-                                <p className="font-medium text-gray-900">{ti.Width}</p>
-                              </div>
-                            )}
-                            {ti?.Length && (
-                              <div>
-                                <p className="text-sm text-gray-600">Length</p>
-                                <p className="font-medium text-gray-900">{ti.Length}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+            <TabPanel value={tabValue} index={1}>
+              {(() => {
+                const ti = product?.ProductTechInfo;
+                const hasAny =
+                  ti?.WeightBeforePackingPerUnit ||
+                  ti?.WeightAfterPackingPerUnit ||
+                  ti?.Height ||
+                  ti?.Width ||
+                  ti?.Length ||
+                  ti?.Warranty ||
+                  ti?.GuaranteePeriod ||
+                  ti?.PackagingDetails ||
+                  ti?.LegalCompliance ||
+                  ti?.PackagingType ||
+                  ti?.UsageInstructions ||
+                  ti?.CareInstructions ||
+                  ti?.SafetyWarnings ||
+                  ti?.Certifications;
+                if (!hasAny) {
+                  return <Typography color="text.secondary">No technical information available.</Typography>;
+                }
+                return (
+                  <Stack spacing={3}>
+                    <Grid container spacing={2}>
+                      {ti?.Warranty && (
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Warranty</Typography>
+                          <Typography fontWeight="500">{ti.Warranty}</Typography>
+                        </Grid>
                       )}
-
-                      {ti?.WeightBeforePackingPerUnit && (
-                        <div>
-                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Packaging Information</p>
-                          <div className="flex items-start gap-3">
-                            <Scale className="h-10 w-10 text-gray-500 shrink-0" />
-                            <div>
-                              <p className="text-sm text-gray-600">Product Weight Before Packaging</p>
-                              <p className="font-medium text-gray-900">
-                                {ti.WeightBeforePackingPerUnit}{' '}
-                                {product.WeightBeforePackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600 ml-10">Product Weight After Packaging</p>
-                              <p className="font-medium text-gray-900 ml-10">
-                                {ti.WeightAfterPackingPerUnit}{' '}
-                                {product.WeightAfterPackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                      {ti?.GuaranteePeriod && (
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Guarantee Period</Typography>
+                          <Typography fontWeight="500">{ti.GuaranteePeriod}</Typography>
+                        </Grid>
                       )}
+                    </Grid>
+                    {(ti?.Height || ti?.Width || ti?.Length) && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Dimensions</Typography>
+                        <Grid container spacing={2}>
+                          {ti?.Height && (
+                            <Grid item xs={4}>
+                              <Typography variant="body2" color="text.secondary">Height</Typography>
+                              <Typography fontWeight="500">{ti.Height}</Typography>
+                            </Grid>
+                          )}
+                          {ti?.Width && (
+                            <Grid item xs={4}>
+                              <Typography variant="body2" color="text.secondary">Width</Typography>
+                              <Typography fontWeight="500">{ti.Width}</Typography>
+                            </Grid>
+                          )}
+                          {ti?.Length && (
+                            <Grid item xs={4}>
+                              <Typography variant="body2" color="text.secondary">Length</Typography>
+                              <Typography fontWeight="500">{ti?.Length}</Typography>
+                            </Grid>
+                          )}
+                        </Grid>
+                      </Box>
+                    )}
+                    {ti?.WeightBeforePackingPerUnit && (
+                      <Stack direction="row" spacing={2} alignItems="flex-start">
+                        <Scale style={{ width: 40, height: 40, color: 'grey.500', flexShrink: 0 }} />
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">Product Weight Before Packaging</Typography>
+                          <Typography fontWeight="500">
+                            {ti.WeightBeforePackingPerUnit} {product.WeightBeforePackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ ml: 2 }}>
+                          <Typography variant="body2" color="text.secondary">Product Weight After Packaging</Typography>
+                          <Typography fontWeight="500">
+                            {ti.WeightAfterPackingPerUnit} {product.WeightAfterPackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    )}
+                    {ti?.PackagingDetails && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Packaging Details</Typography>
+                        <Typography variant="body1" color="text.secondary">{ti.PackagingDetails}</Typography>
+                      </Box>
+                    )}
+                    {ti?.GuaranteeDetails && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Guarantee Details</Typography>
+                        <Typography variant="body1" color="text.secondary">{ti.GuaranteeDetails}</Typography>
+                      </Box>
+                    )}
+                    {ti?.PackagingType && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Packaging Type</Typography>
+                        <Typography variant="body1" color="text.secondary">{ti.PackagingType}</Typography>
+                      </Box>
+                    )}
+                    {ti?.UsageInstructions && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Instructions to use product</Typography>
+                        <Typography variant="body1" color="text.secondary">{ti.UsageInstructions}</Typography>
+                      </Box>
+                    )}
+                    {ti?.CareInstructions && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Care Instructions</Typography>
+                        <Typography variant="body1" color="text.secondary">{ti.CareInstructions}</Typography>
+                      </Box>
+                    )}
+                    {ti?.SafetyWarnings && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Safety Warnings</Typography>
+                        <Typography variant="body1" color="text.secondary">{ti.SafetyWarnings}</Typography>
+                      </Box>
+                    )}
+                    {ti?.Certifications && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Certifications</Typography>
+                        <Typography variant="body1" color="text.secondary">{ti.Certifications}</Typography>
+                      </Box>
+                    )}
+                    {ti?.LegalCompliance && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Legal Information</Typography>
+                        <Typography variant="body1" color="text.secondary">{ti.LegalCompliance}</Typography>
+                      </Box>
+                    )}
+                  </Stack>
+                );
+              })()}
+            </TabPanel>
 
-                      {ti?.PackagingDetails && (
-                        <div>
-                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Packaging Details</p>
-                          <p className="text-gray-700">{ti.PackagingDetails}</p>
-                        </div>
-                      )}
+            <TabPanel value={tabValue} index={2}>
+              <Box>
+                <Typography variant="body2" fontWeight="600" color="#156DB6" sx={{ mb: 2 }}>
+                  Key Features
+                </Typography>
+                {product?.ProductFeatures?.length > 0 ? (
+                  <Grid container spacing={3}>
+                    {product.ProductFeatures.map((f, i) => (
+                      <Grid item xs={12} sm={6} lg={4} key={i}>
+                        <FeatureItem
+                          name={f?.FeatureName || f?.name}
+                          description={f?.FeatureDesc || f?.FeatureDescription || f?.description || ''}
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
+                ) : (
+                  <Typography color="text.secondary">No key features available.</Typography>
+                )}
+              </Box>
+            </TabPanel>
+          </Box>
+        </Paper>
 
-                      {ti?.GuaranteeDetails && (
-                        <div>
-                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Guarantee Details</p>
-                          <p className="text-gray-700">{ti.GuaranteeDetails}</p>
-                        </div>
-                      )}
-
-                      {ti?.PackagingType && (
-                        <div>
-                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Packaging Type</p>
-                          <p className="text-gray-700">{ti.PackagingType}</p>
-                        </div>
-                      )}
-
-                      {ti?.UsageInstructions && (
-                        <div>
-                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Instructions to use product</p>
-                          <p className="text-gray-700">{ti.UsageInstructions}</p>
-                        </div>
-                      )}
-
-                      {ti?.CareInstructions && (
-                        <div>
-                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Care Instructions</p>
-                          <p className="text-gray-700">{ti.CareInstructions}</p>
-                        </div>
-                      )}
-
-                      {ti?.SafetyWarnings && (
-                        <div>
-                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Safety Warnings</p>
-                          <p className="text-gray-700">{ti.SafetyWarnings}</p>
-                        </div>
-                      )}
-
-                      {ti?.Certifications && (
-                        <div>
-                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Certifications</p>
-                          <p className="text-gray-700">{ti.Certifications}</p>
-                        </div>
-                      )}
-
-                      {ti?.LegalCompliance && (
-                        <div>
-                          <p className="text-base font-semibold text-[#1E40AF] mb-2">Legal Information</p>
-                          <p className="text-gray-700">{ti.LegalCompliance}</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </TabsContent>
-              <TabsContent value="3" className="mt-0">
-                <div>
-                  <p className="text-base font-semibold text-[#156DB6] mb-4">Key Features</p>
-                  {product?.ProductFeatures?.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {product.ProductFeatures.map((f, i) => (
-                        <FeatureItem key={i} name={f?.FeatureName || f?.name} description={f?.FeatureDesc || f?.FeatureDescription || f?.description || ''} />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500">No key features available.</p>
-                  )}
-                </div>
-              </TabsContent>
-            </div>
-          </Tabs>
-        </div>
-
-        {/* Upload Product button */}
         {canShowUpload && (
-          <div className="mt-8 flex justify-center">
+          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
             <Button
+              variant="contained"
               onClick={handleUpload}
               disabled={uploading}
-              className="bg-[#C64091] hover:bg-[#A03375] px-8"
+              sx={{
+                bgcolor: primaryColor,
+                px: 4,
+                minWidth: 140,
+                minHeight: 40,
+                '&:hover': { bgcolor: primaryDark },
+              }}
             >
               {uploading ? 'Uploading...' : 'Upload Product'}
             </Button>
-          </div>
+          </Box>
         )}
-
-        {/* Actions */}
-        <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-end">
-          <Button variant="outline" onClick={() => navigate('/sellerhub')} data-testid="btn-back-listing">
-            Back to Listing
-          </Button>
-          <Button
-            onClick={() => {
-              const cat = product?.ProductCategoryName;
-              const slug = CATEGORY_TO_SLUG[cat] || 'textile';
-              navigate(`/${slug}/general-info/${id}`);
-            }}
-            className="bg-[#C64091] hover:bg-[#A03375]"
-            data-testid="btn-edit-product"
-          >
-            Edit Product
-          </Button>
-        </div>
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }

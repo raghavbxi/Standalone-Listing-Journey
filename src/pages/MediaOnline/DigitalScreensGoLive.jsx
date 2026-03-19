@@ -19,7 +19,7 @@ export default function DigitalScreensGoLive() {
     if (!id) return;
     const fetchProduct = async () => {
       try {
-        const res = await api.get(`/product/get_product_byId/${id}`);
+        const res = await api.get(`product/get_product_byId/${id}`);
         setProductData(res?.data);
       } catch (e) {
         toast.error('Failed to load product');

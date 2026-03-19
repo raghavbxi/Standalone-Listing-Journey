@@ -31,7 +31,7 @@ const getAdminToken = () => {
 
 // Create axios instance with base configuration (BXI mounts routes at root, no /api)
 const api = axios.create({
-  baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:7000',
+  baseURL: 'http://localhost:7000',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -39,7 +39,7 @@ const api = axios.create({
   },
 });
 
-// Request interceptor - add admin token if present
+// Request interceptor - add admin token if present; allow FormData to set Content-Type (multipart)
 api.interceptors.request.use(
   (config) => {
     const token = getAdminToken();
@@ -48,6 +48,11 @@ api.interceptors.request.use(
       console.log('[API] Admin token attached to request:', config.url);
     } else {
       console.log('[API] No admin token, using cookie auth for:', config.url);
+    }
+    // When sending FormData, do not send Content-Type so the browser sets multipart/form-data with boundary.
+    // Otherwise the default application/json causes the server to not parse files and req.files stays empty.
+    if (config.data && typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
     }
     return config;
   },

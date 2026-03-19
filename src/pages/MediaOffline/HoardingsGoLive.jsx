@@ -31,7 +31,7 @@ export default function HoardingsGoLive() {
     setIsLoading(true);
     try {
       // First get product to find Hoarding_list_id
-      const productRes = await api.get(`/product/get_product_byId/${id}`);
+      const productRes = await api.get(`product/get_product_byId/${id}`);
       const listId = productRes?.data?.Hoarding_list_id;
 
       if (!listId) {
