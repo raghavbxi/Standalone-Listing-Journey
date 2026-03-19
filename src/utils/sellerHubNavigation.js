@@ -154,6 +154,8 @@ const resolveViewRoute = ({ product, companyType, listingType, productCategory, 
 
 /**
  * Resolve Edit route
+ * For drafts, step is taken from ProductUploadStatus when reviewReasonNavigation is missing
+ * so the user returns to the page where they left off.
  */
 const resolveEditRoute = ({ 
   product, 
@@ -166,8 +168,11 @@ const resolveEditRoute = ({
   reviewReasonNavigation,
   isBulkUpload 
 }) => {
-  // Determine step from reviewReasonNavigation
-  const step = reviewReasonNavigation ? stepMappings[reviewReasonNavigation] || '/general-info' : '/general-info';
+  // Step: prefer reviewReasonNavigation (e.g. from admin), fallback to ProductUploadStatus (draft / where user left off)
+  const stepKey = reviewReasonNavigation || product?.ProductUploadStatus;
+  const step = stepKey
+    ? (stepMappings[stepKey] || stepMappings[stepKey.toLowerCase?.()] || '/general-info')
+    : '/general-info';
 
   // Handle bulk upload products
   if (isBulkUpload) {
@@ -176,21 +181,25 @@ const resolveEditRoute = ({
 
   // Handle Media company type (multiplex, digital, hoarding have specific step routes)
   if (companyType === 'Media') {
-    const reviewKey = (reviewReasonNavigation || 'productinformation').toLowerCase();
+    const reviewKey = (reviewReasonNavigation || product?.ProductUploadStatus || 'productinformation').toLowerCase();
     if (productCategory === 'Multiplex ADs') {
       if (productSubCategory === 'Digital ADs') {
-        const digitalSteps = { productinformation: 'mediaonlinedigitalscreensinfo', technicalinformation: 'mediaonlinedigitalscreenstechinfo', golive: 'digitalscreensgolive' };
+        const digitalSteps = { generalinformation: 'general-info', productinformation: 'mediaonlinedigitalscreensinfo', technicalinformation: 'mediaonlinedigitalscreenstechinfo', golive: 'digitalscreensgolive' };
         const digitalStep = digitalSteps[reviewKey] || 'mediaonlinedigitalscreensinfo';
         return `/mediaonline/${digitalStep}/${productId}`;
       }
-      const multiplexSteps = { productinformation: 'mediaonlinemultiplexproductinfo', technicalinformation: 'mediamultiplextechinfo', golive: 'go-live' };
+      const multiplexSteps = { generalinformation: 'general-info', productinformation: 'mediaonlinemultiplexproductinfo', technicalinformation: 'mediamultiplextechinfo', golive: 'go-live' };
       const multiplexStep = multiplexSteps[reviewKey] || 'mediaonlinemultiplexproductinfo';
       return `/mediaonline/${multiplexStep}/${productId}`;
     }
     if (productCategory === 'Hoardings' || productSubCategory === 'Hoardings') {
-      const hoardingSteps = { productinformation: 'mediaofflinehoardinginfo', technicalinformation: 'mediaofflinehoardingtechinfo', golive: 'hoardingsgolive' };
+      const hoardingSteps = { generalinformation: 'general-info', productinformation: 'mediaofflinehoardinginfo', technicalinformation: 'mediaofflinehoardingtechinfo', golive: 'hoardingsgolive' };
       const hoardingStep = hoardingSteps[reviewKey] || 'mediaofflinehoardinginfo';
       return `/mediaoffline/${hoardingStep}/${productId}`;
+    }
+    // Default media offline (e.g. News Paper & Magazine): general-info or product-info
+    if (reviewKey === 'generalinformation') {
+      return `/mediaoffline/general-info/${productId}`;
     }
     return `/mediaoffline/product-info/${productId}`;
   }
@@ -201,7 +210,7 @@ const resolveEditRoute = ({
     if (voucherRoute) {
       // Hotel voucher uses different step names (hotelsproductinfo, hotelstechinfo, hotelsgolive)
       const isHotel = companyType === 'Hotel' || companyType === 'Hotels';
-      const reviewKey = (reviewReasonNavigation || '').toLowerCase();
+      const reviewKey = (reviewReasonNavigation || product?.ProductUploadStatus || '').toLowerCase();
       if (isHotel && hotelVoucherStepMappings[reviewKey]) {
         return `${voucherRoute}${hotelVoucherStepMappings[reviewKey]}/${productId}`;
       }
