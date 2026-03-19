@@ -48,6 +48,7 @@ import StateData from '../../utils/StateCityArray.json';
 import { supportsBulkUpload, downloadBulkUploadTemplate } from '../../utils/excelTemplates';
 import { Divider } from '@mui/material';
 import { InfoIcon } from 'lucide-react';
+import bxitoken from '../../assets/bxi-token.svg';
 
 const STATE_REGION_MAP = {
   'Delhi': 'North', 'Haryana': 'North', 'Punjab': 'North', 'Uttar Pradesh': 'North',
@@ -157,25 +158,35 @@ const STEPS = [
 // Stepper Component – exported for use in voucher pages (HotelsProductInfo, VoucherTechInfo, VoucherGoLive, VoucherDesign)
 export const Stepper = ({ currentStep, completedSteps = [] }) => {
   return (
-    <div className="stepper" data-testid="add-product-stepper">
+    <div className="stepper vertical" data-testid="add-product-stepper">
       {STEPS.map((step, index) => {
         const isActive = currentStep === step.id;
         const isCompleted = completedSteps.includes(step.id) || currentStep > step.id;
         
         return (
           <div key={step.id} className="stepper-step">
-            <div className={cn(
-              'stepper-circle',
-              isActive && 'active',
-              isCompleted && 'completed'
-            )}>
-              {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : step.id}
+            <div className="stepper-step-row">
+              <div
+                className={cn(
+                  'stepper-circle',
+                  isActive && 'active',
+                  isCompleted && 'completed'
+                )}
+              >
+                {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : step.id}
+              </div>
+              <span
+                className={cn(
+                  'stepper-label',
+                  isActive && 'active',
+                  isCompleted && 'completed'
+                )}
+              >
+                {step.name}
+              </span>
             </div>
-            <span className={cn('stepper-label', isActive && 'active')}>
-              {step.name}
-            </span>
             {index < STEPS.length - 1 && (
-              <div className={cn('stepper-line', isCompleted && 'completed')} />
+              <div className={cn('stepper-line-vertical', isCompleted && 'completed')} />
             )}
           </div>
         );
@@ -208,7 +219,6 @@ export const GeneralInformation = ({ category }) => {
       productSubtitle: '',
       subcategory: '',
       description: '',
-      listingType: 'Product',
       hasRegistrationProcess: 'Yes',
       HotelStars: '5',
       gender: '',
@@ -236,6 +246,7 @@ export const GeneralInformation = ({ category }) => {
               value: el?._id ?? el?.SubcategoryType ?? el,
               label: el?.SampleCategoryType ?? el?.SubcategoryType ?? (typeof el === 'string' ? el : String(el?._id ?? '')),
             })).filter((o) => o.value != null && o.label != null);
+            options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
             setSubcategoryOptions(options);
             setValue('subcategory', '');
           })
@@ -252,7 +263,10 @@ export const GeneralInformation = ({ category }) => {
           'Valid on Limited',
           'Others',
         ];
-        setSubcategoryOptions(defaultHotelSubcategories.map((s) => ({ value: s, label: s })));
+        const options = defaultHotelSubcategories
+          .map((s) => ({ value: s, label: s }))
+          .sort((a, b) => String(a.label).localeCompare(String(b.label)));
+        setSubcategoryOptions(options);
         setGenderCategoryData([]);
         setSelectedGenderId(null);
         setSelectedGender('Unisex');
@@ -297,6 +311,7 @@ export const GeneralInformation = ({ category }) => {
           const options = getSubcategoryOptions({
             data: [{ SubcategoryValue: defaultGenderGroup?.SubcategoryValue || [] }],
           });
+          options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
           setSubcategoryOptions(options);
           setValue('subcategory', '');
         } else {
@@ -305,6 +320,7 @@ export const GeneralInformation = ({ category }) => {
           setSelectedGender('Unisex');
           const root = res?.data?.body ?? res?.data?.data ?? res?.data;
           const options = getSubcategoryOptions({ data: root });
+          options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
           setSubcategoryOptions(options);
         }
       } catch (error) {
@@ -326,6 +342,7 @@ export const GeneralInformation = ({ category }) => {
     const options = getSubcategoryOptions({
       data: [{ SubcategoryValue: genderGroup?.SubcategoryValue || [] }],
     });
+    options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
     setSubcategoryOptions(options);
     setValue('subcategory', '', { shouldValidate: true });
   };
@@ -364,7 +381,7 @@ export const GeneralInformation = ({ category }) => {
           ProductName: data.productName,
           ProductDescription: data.description,
           ProductUploadStatus: 'productinformation',
-          ListingType: isVoucherCategory ? 'Voucher' : (data.listingType || 'Product'),
+          ListingType: isVoucherCategory ? 'Voucher' : 'Product',
           ProductType:
             PRODUCT_TYPE_BY_CATEGORY[category] || categoryLabel || 'Others',
           ProductSubCategory: normalizedSubcategory,
@@ -501,91 +518,28 @@ export const GeneralInformation = ({ category }) => {
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8" data-testid="general-info-page">
       <div className="form-container">
-        <Stepper currentStep={1} />
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={1} />
+          </aside>
 
-        <div className="form-section">
-          <h2 className="form-section-title">
-            General Information - {categoryLabel}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <InfoIcon className="w-4 h-4 ml-2" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>General Information refers to broad and fundamental knowledge or facts about a particular Product OR Vouchers. It includes basic details, features, or descriptions that provide overview.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </h2>
-          
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Product Name – validation from getValidationSchema (bxi parity) */}
-            <div className="space-y-2">
-              <Label htmlFor="productName">
-                {isVoucherCategory ? 'Voucher Name' : 'Product Name'} <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="productName"
-                placeholder={isVoucherCategory ? 'Enter Voucher Name' : 'Enter Product Name'}
-                {...register('productName', (() => {
-                  const p = valSchema?.productname;
-                  if (!p) return { required: 'Product name is required' };
-                  const r = {};
-                  if (p.required) r.required = p.min ? `Product name must be at least ${p.min} characters` : 'Product name is required';
-                  if (p.min) r.minLength = { value: p.min, message: `Product name must be at least ${p.min} characters` };
-                  if (p.max) r.maxLength = { value: p.max, message: `Product name must be at most ${p.max} characters` };
-                  return r;
-                })())}
-                className={errors.productName ? 'border-red-500' : ''}
-                data-testid="input-product-name"
-              />
-              {errors.productName && (
-                <p className="text-sm text-red-500">{errors.productName.message}</p>
-              )}
-            </div>
+          <main className="stepper-content">
+            <div className="form-section">
+              <h2 className="form-section-title">
+                General Information - {categoryLabel}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <InfoIcon className="w-4 h-4 ml-2" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>General Information refers to broad and fundamental knowledge or facts about a particular Product OR Vouchers. It includes basic details, features, or descriptions that provide overview.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </h2>
 
-            {/* Subtitle – shown when config.hasSubtitle; validation from getValidationSchema */}
-            {giConfig.hasSubtitle &&  (
-              <div className="space-y-2 mt-4">
-                <Label htmlFor="productSubtitle">{isVoucherCategory ? 'Voucher Subtitle' : 'Product Subtitle'} <span className="text-red-500">*</span></Label>
-                <Input
-                  id="productSubtitle"
-                  placeholder={isVoucherCategory ? 'Enter Voucher Subtitle' : 'Enter Product Subtitle'}
-                  {...register('productSubtitle', (() => {
-                    const p = valSchema?.productsubtitle;
-                    if (!p) return { required: 'Product subtitle is required', minLength: 10, maxLength: 75 };
-                    const r = {};
-                    if (p.required) r.required = p.min ? `Product subtitle must be at least ${p.min} characters` : 'Product subtitle is required';
-                    if (p.min) r.minLength = { value: p.min, message: `Product subtitle must be at least ${p.min} characters` };
-                    if (p.max) r.maxLength = { value: p.max, message: `Product subtitle must be at most ${p.max} characters` };
-                    return r;
-                  })())}
-                  className={errors.productSubtitle ? 'border-red-500' : ''}
-                />
-                {errors.productSubtitle && (
-                  <p className="text-sm text-red-500">{errors.productSubtitle.message}</p>
-                )}
-              </div>
-            )}
-
-            {/* Listing Type – only for product categories */}
-            {!isVoucherCategory && (
-              <div className="space-y-2">
-                <Label>Listing Type</Label>
-                <Select
-                  defaultValue="Product"
-                  onValueChange={(value) => setValue('listingType', value)}
-                >
-                  <SelectTrigger data-testid="select-listing-type">
-                    <SelectValue placeholder="Select listing type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Product">Product</SelectItem>
-                    <SelectItem value="Voucher">Voucher</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
             {/* Subcategory */}
             <div className="space-y-2">
@@ -660,6 +614,57 @@ export const GeneralInformation = ({ category }) => {
                 <p className="text-sm text-red-500">{errors.subcategory.message}</p>
               )}
             </div>
+            {/* Product Name – validation from getValidationSchema (bxi parity) */}
+            <div className="space-y-2">
+              <Label htmlFor="productName">
+                {isVoucherCategory ? 'Voucher Name' : 'Product Name'} <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="productName"
+                placeholder={isVoucherCategory ? 'Enter Voucher Name' : 'Enter Product Name'}
+                {...register('productName', (() => {
+                  const p = valSchema?.productname;
+                  if (!p) return { required: 'Product name is required' };
+                  const r = {};
+                  if (p.required) r.required = p.min ? `Product name must be at least ${p.min} characters` : 'Product name is required';
+                  if (p.min) r.minLength = { value: p.min, message: `Product name must be at least ${p.min} characters` };
+                  if (p.max) r.maxLength = { value: p.max, message: `Product name must be at most ${p.max} characters` };
+                  return r;
+                })())}
+                className={errors.productName ? 'border-red-500' : ''}
+                data-testid="input-product-name"
+              />
+              {errors.productName && (
+                <p className="text-sm text-red-500">{errors.productName.message}</p>
+              )}
+            </div>
+
+            {/* Subtitle – shown when config.hasSubtitle; validation from getValidationSchema */}
+            {giConfig.hasSubtitle &&  (
+              <div className="space-y-2 mt-4">
+                <Label htmlFor="productSubtitle">{isVoucherCategory ? 'Voucher Subtitle' : 'Product Subtitle'} <span className="text-red-500">*</span></Label>
+                <Input
+                  id="productSubtitle"
+                  placeholder={isVoucherCategory ? 'Enter Voucher Subtitle' : 'Enter Product Subtitle'}
+                  {...register('productSubtitle', (() => {
+                    const p = valSchema?.productsubtitle;
+                    if (!p) return { required: 'Product subtitle is required', minLength: 10, maxLength: 75 };
+                    const r = {};
+                    if (p.required) r.required = p.min ? `Product subtitle must be at least ${p.min} characters` : 'Product subtitle is required';
+                    if (p.min) r.minLength = { value: p.min, message: `Product subtitle must be at least ${p.min} characters` };
+                    if (p.max) r.maxLength = { value: p.max, message: `Product subtitle must be at most ${p.max} characters` };
+                    return r;
+                  })())}
+                  className={errors.productSubtitle ? 'border-red-500' : ''}
+                />
+                {errors.productSubtitle && (
+                  <p className="text-sm text-red-500">{errors.productSubtitle.message}</p>
+                )}
+              </div>
+            )}
+
+            {/* Listing Type – only for product categories */}
+
 
             {/* Description – validation from getValidationSchema (bxi productdescription min/max) */}
             <div className="space-y-2">
@@ -752,7 +757,9 @@ export const GeneralInformation = ({ category }) => {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
-          </form>
+              </form>
+            </div>
+          </main>
         </div>
       </div>
     </div>
@@ -792,6 +799,9 @@ export const ProductInfo = ({ category }) => {
   const [hasExpiryDate, setHasExpiryDate] = useState(false);
   const [expiryDate, setExpiryDate] = useState(null);
 
+  // Variation edit state
+  const [editVariationIndex, setEditVariationIndex] = useState(null);
+
   // Tags (voucher categories)
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
@@ -817,6 +827,7 @@ export const ProductInfo = ({ category }) => {
   const hasSizeOptions = effectiveSizeOptions.length > 0 && category !== 'restaurant';
 
   const hasHsn = piConfig.commonFields?.includes?.('hsn') ?? true;
+  const showProductColor = !isVoucherCategory && piConfig.hasColorPicker && category !== 'restaurant';
   const hasSampleCheckbox = !isVoucherCategory;
   const hasGenderInProductInfo = isVoucherCategory
     ? (voucherPiConfig?.hasGender || false)
@@ -841,7 +852,7 @@ export const ProductInfo = ({ category }) => {
         console.log("list", list);
         let opts = list
           .map((item) => {
-            const label = item?.[featureNameField] || item?.name || item?.value || item?.FmcgproductinfoType || item?.OtherFeature || item?.OfficesupplyFeature;
+            const label = item?.[featureNameField] || item?.name || item?.value || item?.FmcgproductinfoType || item?.OtherFeature || item?.OfficesupplyFeature  || item?.TextileFeature;
             return label ? { label, value: label } : null;
           })
           .filter(Boolean);
@@ -868,11 +879,18 @@ export const ProductInfo = ({ category }) => {
   useEffect(() => {
     if (locationDetails.state && StateData?.length) {
       const stateObj = StateData.find((s) => s.name === locationDetails.state);
-      setCityArray(stateObj?.data || []);
+      const baseCities = stateObj?.data || [];
+      const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '') || '';
+      const currentCity = locationDetails.city || '';
+      if (currentCity && !baseCities.some((c) => normalize(c) === normalize(currentCity))) {
+        setCityArray([currentCity, ...baseCities]);
+      } else {
+        setCityArray(baseCities);
+      }
     } else {
       setCityArray([]);
     }
-  }, [locationDetails.state]);
+  }, [locationDetails.state, locationDetails.city]);
 
   useEffect(() => {
     if (selectedFeature) {
@@ -887,21 +905,40 @@ export const ProductInfo = ({ category }) => {
       const data = await res.json();
       if (data?.[0]?.Status === 'Success' && data?.[0]?.PostOffice?.length > 0) {
         const po = data[0].PostOffice[0];
-        const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '');
-        const matchedState = StateData.find((s) => normalize(s.name) === normalize(po.State));
+        const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '') || '';
+
+        const apiStateName = po.State;
+        const apiDistrict = po.Block || po.District;
+        const apiLandmark = po.Name;
+
+        const matchedState = StateData.find((s) => normalize(s.name) === normalize(apiStateName));
         if (matchedState) {
+          const cities = matchedState.data || [];
+          const normalizedApiDistrict = normalize(apiDistrict);
+          const matchedCity =
+            cities.find((c) => normalize(c) === normalizedApiDistrict) ||
+            cities.find((c) => normalize(c).includes(normalizedApiDistrict) || normalizedApiDistrict.includes(normalize(c)));
+
+          const fallbackCity = apiDistrict || '';
+          const nextCity = matchedCity || cities?.[0] || fallbackCity;
+          const nextCityArray = (() => {
+            if (!fallbackCity) return cities;
+            if (cities.some((c) => normalize(c) === normalize(fallbackCity))) return cities;
+            return [fallbackCity, ...cities];
+          })();
+
           setLocationDetails((prev) => ({
             ...prev,
             pincode: String(pincode),
             region: STATE_REGION_MAP[matchedState.name] || 'North',
             state: matchedState.name,
-            city: (matchedState.data || []).find((c) => normalize(c) === normalize(po.District)) || matchedState.data?.[0] || '',
-            landmark: po.Name || prev.landmark,
+            city: nextCity,
+            landmark: apiLandmark || prev.landmark,
           }));
-          setCityArray(matchedState.data || []);
+          setCityArray(nextCityArray);
           toast.success('Location auto-filled!');
         } else {
-          toast.warning(`State "${po.State}" not found. Please select manually.`);
+          toast.warning(`State "${apiStateName}" not found. Please select manually.`);
         }
       } else {
         toast.error('Invalid pincode or no data found');
@@ -1043,7 +1080,17 @@ export const ProductInfo = ({ category }) => {
       toast.error('Discounted MRP cannot be greater than MRP');
       return;
     }
-    if(parseInt(d.minOrderQty) > parseInt(d.maxOrderQty)){
+    const minQty = parseInt(d.minOrderQty, 10);
+    const maxQty = parseInt(d.maxOrderQty, 10);
+    if (!Number.isFinite(minQty) || minQty < 1) {
+      toast.error('Minimum Order Quantity must be greater than 0');
+      return;
+    }
+    if (!Number.isFinite(maxQty) || maxQty < 1) {
+      toast.error('Maximum Order Quantity must be greater than 0');
+      return;
+    }
+    if (minQty > maxQty) {
       toast.error('Min Order Quantity cannot be greater than Max Order Quantity');
       return;
     }
@@ -1051,8 +1098,8 @@ export const ProductInfo = ({ category }) => {
     const variation = {
       PricePerUnit: price,
       DiscountedPrice: discountedPrice,
-      MinOrderQuantity: parseInt(d.minOrderQty, 10) || 1,
-      MaxOrderQuantity: parseInt(d.maxOrderQty, 10) || 100,
+      MinOrderQuantity: minQty,
+      MaxOrderQuantity: maxQty,
       GST: String(d.gst || '18'),
       HSN: d.hsn || '',
       ProductSize: productSize,
@@ -1073,7 +1120,14 @@ export const ProductInfo = ({ category }) => {
       ...(extraCol === 'offeringType' && { OfferingType: d.offeringType || '' }),
       ...(extraCol === 'dateOfEvent' && (category !== 'eeVoucher' || (typeof localStorage !== 'undefined' && localStorage.getItem('eevoucherdata') === 'event')) && { DateOfTheEvent: d.dateOfEvent || '' }),
     };
-    setProductsVariations((prev) => [...prev, variation]);
+    if (editVariationIndex !== null) {
+      setProductsVariations((prev) => prev.map((row, i) => (i === editVariationIndex ? variation : row)));
+      setEditVariationIndex(null);
+      toast.success('Variation updated');
+    } else {
+      setProductsVariations((prev) => [...prev, variation]);
+      toast.success('Variation added');
+    }
     setValue('price', '');
     setValue('discountedPrice', '');
     setValue('productIdType', '');
@@ -1094,7 +1148,44 @@ export const ProductInfo = ({ category }) => {
     setValue('flavor', '');
     setValue('offeringType', '');
     setValue('dateOfEvent', '');
-    toast.success('Variation added');
+  };
+
+  const handleEditVariation = (idx) => {
+    const row = productsVariations[idx];
+    if (!row) return;
+    setEditVariationIndex(idx);
+
+    setValue('price', row.PricePerUnit ?? '');
+    setValue('discountedPrice', row.DiscountedPrice ?? '');
+    setValue('gst', String(row.GST ?? '18'));
+    setValue('hsn', row.HSN ?? '');
+    setValue('minOrderQty', String(row.MinOrderQuantity ?? '1'));
+    setValue('maxOrderQty', String(row.MaxOrderQuantity ?? '100'));
+    setValue('totalAvailableQty', String(row.TotalAvailableQty ?? '1'));
+    setValue('productIdType', row.ProductIdType ?? '');
+    setValue('productColor', row.ProductColor ?? '#ffffff');
+
+    // Size/dimensions
+    setValue('length', row.Length ?? '');
+    setValue('width', row.Width ?? '');
+    setValue('height', row.Height ?? '');
+    setValue('weight', row.Weight ?? '');
+    if (row.ShoeSize) {
+      setValue('selectedSize', 'Shoes');
+      setValue('shoeSize', String(row.ShoeSize));
+      setValue('shoeMeasurementUnit', row.MeasurementUnit || 'US');
+    } else {
+      setValue('selectedSize', row.ProductSize ?? '');
+    }
+
+    // Voucher fields
+    if (isVoucherCategory) {
+      setValue('validityOfVoucherValue', String(row.validityOfVoucherValue ?? '12'));
+      setValue('validityOfVoucherUnit', row.validityOfVoucherUnit || 'Months');
+    }
+    if (voucherPiConfig?.extraVariantColumn === 'flavor') setValue('flavor', row.Flavor ?? '');
+    if (voucherPiConfig?.extraVariantColumn === 'offeringType') setValue('offeringType', row.OfferingType ?? '');
+    if (voucherPiConfig?.extraVariantColumn === 'dateOfEvent') setValue('dateOfEvent', row.DateOfTheEvent ?? '');
   };
 
   const handleRemoveVariation = (idx) => {
@@ -1325,24 +1416,28 @@ export const ProductInfo = ({ category }) => {
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8" data-testid="product-info-page">
       <div className="form-container">
-        <Stepper currentStep={2} completedSteps={[1]} />
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={2} completedSteps={[1]} />
+          </aside>
 
-        <div className="form-section">
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="form-section-title">{isVoucherCategory ? 'Voucher Information' : 'Product Information'}</h2>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
-                    <Info className="w-4 h-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Complete your product details to make it discoverable</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+          <main className="stepper-content">
+            <div className="form-section">
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="form-section-title">{isVoucherCategory ? 'Voucher Information' : 'Product Information'} - {category.charAt(0).toUpperCase() + category.slice(1)}</h2>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                        <Info className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Complete your product details to make it discoverable</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
           
           {/* Template Download for Bulk Upload Categories */}
           {supportsBulkUpload(category) && (
@@ -1538,44 +1633,143 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* Product ID / SKU – when config hasProductId (not for vouchers) */}
-            {piConfig.hasProductId && !isVoucherCategory && (
-              <div className="space-y-2">
-                <Label htmlFor="productIdType">Product Id Type <span className="text-red-500">*</span></Label>
-                <Input
-                  id="productIdType"
-                  placeholder="e.g. 1910WH23"
-                  {...register('productIdType')}
-                />
-              </div>
-            )}
+            {/* Dimension fields – shown for Length-based sizes */}
+            {hasSizeOptions && selectedSize && ['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Custom Size'].includes(selectedSize) && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {(selectedSize === 'Length' || selectedSize === 'Length x Height' || selectedSize === 'Length x Height x Width' || selectedSize === 'Custom Size') && (
+                  <div className="space-y-2">
+                    <Label>Length ({watch('sizeUnit') || 'cm'})</Label>
+                    <Input type="number" step="0.01" placeholder="0" {...register('length')} />
+                  </div>
+                )}
 
-            {/* Color picker – when config hasColorPicker (or voucher with color extra column) */}
-            {(isVoucherCategory ? voucherPiConfig?.extraVariantColumn === 'color' : piConfig.hasColorPicker) && (
-              <div className="space-y-2">
-                <Label>Color <span className="text-red-500">*</span></Label>
-                <div className="flex gap-3 items-center">
-                  <input
-                    type="color"
-                    {...register('productColor')}
-                    className="w-12 h-12 rounded cursor-pointer border border-gray-300"
-                  />
-                  <span className="text-sm text-gray-600 font-mono">{watch('productColor') || '#ffffff'}</span>
+                {/* Height should appear for both LxH and LxHxW */}
+                {(selectedSize === 'Length x Height' || selectedSize === 'Length x Height x Width' || selectedSize === 'Custom Size') && (
+                  <div className="space-y-2">
+                    <Label>Height ({watch('sizeUnit') || 'cm'})</Label>
+                    <Input type="number" step="0.01" placeholder="0" {...register('height')} />
+                  </div>
+                )}
+
+                {(selectedSize === 'Length x Height x Width' || selectedSize === 'Custom Size') && (
+                  <div className="space-y-2">
+                    <Label>Width ({watch('sizeUnit') || 'cm'})</Label>
+                    <Input type="number" step="0.01" placeholder="0" {...register('width')} />
+                  </div>
+                )}
+
+                {selectedSize === 'Weight' && (
+                  <div className="space-y-2">
+                    <Label>Weight ({watch('sizeUnit') || 'kg'})</Label>
+                    <Input type="number" step="0.01" placeholder="0" {...register('weight')} />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Unit</Label>
+                  <Select
+                    value={watch('sizeUnit')}
+                    onValueChange={(v) => setValue('sizeUnit', v)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedSize === 'Weight' ? (
+                        <>
+                          <SelectItem value="kg">kg</SelectItem>
+                          <SelectItem value="g">g</SelectItem>
+                          <SelectItem value="lb">lb</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="cm">cm</SelectItem>
+                          <SelectItem value="mm">mm</SelectItem>
+                          <SelectItem value="in">in</SelectItem>
+                          <SelectItem value="m">m</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}
 
-            {/* HSN – when config has HSN */}
-            {hasHsn && (
-              <div className="space-y-2">
-                <Label htmlFor="hsn">HSN <span className="text-red-500">*</span></Label>
-                <Input
-                  id="hsn"
-                  placeholder="e.g. 998346"
-                  {...register('hsn')}
-                />
+            {/* Product Id + Color (same row) */}
+            {(piConfig.hasProductId && !isVoucherCategory) || (isVoucherCategory ? voucherPiConfig?.extraVariantColumn === 'color' : showProductColor) ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Product ID / SKU – when config hasProductId (not for vouchers) */}
+                {piConfig.hasProductId && !isVoucherCategory && (
+                  <div className="space-y-2">
+                    <Label htmlFor="productIdType">Product Id Type <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="productIdType"
+                      placeholder="e.g. 1910WH23"
+                      {...register('productIdType')}
+                    />
+                  </div>
+                )}
+
+                {/* Color picker – when config hasColorPicker (or voucher with color extra column) */}
+                {(isVoucherCategory ? voucherPiConfig?.extraVariantColumn === 'color' : showProductColor) && (
+                  <div className={cn('space-y-2', !(piConfig.hasProductId && !isVoucherCategory) && 'md:col-span-2')}>
+                    <Label>Color <span className="text-red-500">*</span></Label>
+                    <div className="flex gap-3 items-center">
+                      <input
+                        type="color"
+                        {...register('productColor')}
+                        className="w-12 h-12 rounded cursor-pointer border border-gray-300"
+                      />
+                      <span className="text-sm text-gray-600 font-mono">{watch('productColor') || '#ffffff'}</span>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            ) : null}
+
+            {/* HSN + GST (same row) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* HSN – when config has HSN */}
+              {hasHsn && (
+                <div className="space-y-2">
+                  <Label htmlFor="hsn">HSN <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="hsn"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="e.g. 998346"
+                    {...register('hsn', {
+                      setValueAs: (v) => String(v ?? '').replace(/\D/g, ''),
+                      onChange: (e) => {
+                        const next = String(e?.target?.value ?? '').replace(/\D/g, '');
+                        setValue('hsn', next, { shouldValidate: true, shouldDirty: true });
+                      },
+                    })}
+                  />
+                </div>
+              )}
+
+              {/* GST */}
+              <div className="space-y-2">
+                <Label>GST <span className="text-red-500">*</span></Label>
+                <Select
+                  defaultValue="18"
+                  onValueChange={(value) => setValue('gst', value)}
+                >
+                  <SelectTrigger data-testid="select-gst">
+                    <SelectValue placeholder="Select GST rate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0%</SelectItem>
+                    <SelectItem value="5">5%</SelectItem>
+                    <SelectItem value="12">12%</SelectItem>
+                    <SelectItem value="18">18%</SelectItem>
+                    <SelectItem value="28">28%</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
             {/* FMCG: Dry/Wet form selection (not for vouchers) */}
             {piConfig.hasFormSelection && !isVoucherCategory && (
@@ -1593,160 +1787,6 @@ export const ProductInfo = ({ category }) => {
                     <SelectItem value="Wet">Wet</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            )}
-
-            {/* Manufacturing & Expiry Dates – for electronics, fmcg, officesupply, mobility, restaurant, others */}
-            {hasManufacturingDates && ['electronics', 'fmcg', 'officesupply', 'mobility', 'restaurant', 'others'].includes(category) && (
-              <div className="space-y-4 pt-4">
-                <h3 className="text-base font-semibold text-[#111827]">Product Dates</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Manufacturing Date */}
-                  <div className="space-y-2">
-                    <Label>
-                      Manufacturing Date{' '}
-                      {currentDateReqs.manufacturing === 'mandatory' && <span className="text-red-500">*</span>}
-                    </Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={cn(
-                            'w-full justify-start text-left font-normal',
-                            !manufacturingDate && 'text-muted-foreground'
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {manufacturingDate ? format(manufacturingDate, 'PPP') : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={manufacturingDate}
-                          onSelect={setManufacturingDate}
-                          disabled={(date) => date > new Date()}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  {/* Expiry Date */}
-                  <div className="space-y-2">
-                    {/* For FMCG, expiry is mandatory (no checkbox) */}
-                    {category === 'fmcg' ? (
-                      <>
-                        <Label>
-                          Expiry Date <span className="text-red-500">*</span>
-                        </Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className={cn(
-                                'w-full justify-start text-left font-normal',
-                                !expiryDate && 'text-muted-foreground'
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {expiryDate ? format(expiryDate, 'PPP') : <span>Pick a date</span>}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={expiryDate}
-                              onSelect={setExpiryDate}
-                              disabled={(date) => {
-                                if (date < new Date()) return true;
-                                if (manufacturingDate && date <= manufacturingDate) return true;
-                                return false;
-                              }}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="has-expiry"
-                            checked={hasExpiryDate}
-                            onCheckedChange={setHasExpiryDate}
-                          />
-                          <Label htmlFor="has-expiry" className="cursor-pointer">
-                            This product has an expiry date
-                          </Label>
-                        </div>
-                        {hasExpiryDate && (
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className={cn(
-                                  'w-full justify-start text-left font-normal',
-                                  !expiryDate && 'text-muted-foreground'
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {expiryDate ? format(expiryDate, 'PPP') : <span>Pick a date</span>}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={expiryDate}
-                                onSelect={setExpiryDate}
-                                disabled={(date) => {
-                                  if (date < new Date()) return true;
-                                  if (manufacturingDate && date <= manufacturingDate) return true;
-                                  return false;
-                                }}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Dimension fields – shown for Length-based sizes */}
-            {hasSizeOptions && selectedSize && ['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Custom Size'].includes(selectedSize) && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {(selectedSize === 'Length' || selectedSize === 'Length x Height' || selectedSize === 'Length x Height x Width' || selectedSize === 'Custom Size') && (
-                  <div className="space-y-2">
-                    <Label>Length (cm)</Label>
-                    <Input type="number" step="0.01" placeholder="0" {...register('length')} />
-                  </div>
-                )}
-                {(selectedSize === 'Length x Height x Width' || selectedSize === 'Custom Size') && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Width (cm)</Label>
-                      <Input type="number" step="0.01" placeholder="0" {...register('width')} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Height (cm)</Label>
-                      <Input type="number" step="0.01" placeholder="0" {...register('height')} />
-                    </div>
-                  </>
-                )}
-                {selectedSize === 'Weight' && (
-                  <div className="space-y-2">
-                    <Label>Weight (kg)</Label>
-                    <Input type="number" step="0.01" placeholder="0" {...register('weight')} />
-                  </div>
-                )}
               </div>
             )}
 
@@ -1781,25 +1821,7 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* GST */}
-            <div className="space-y-2">
-              <Label>GST <span className="text-red-500">*</span></Label>
-              <Select
-                defaultValue="18"
-                onValueChange={(value) => setValue('gst', value)}
-              >
-                <SelectTrigger data-testid="select-gst">
-                  <SelectValue placeholder="Select GST rate" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">0%</SelectItem>
-                  <SelectItem value="5">5%</SelectItem>
-                  <SelectItem value="12">12%</SelectItem>
-                  <SelectItem value="18">18%</SelectItem>
-                  <SelectItem value="28">28%</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* GST moved next to HSN above */}
 
             {/* MRP & Discounted MRP */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1865,6 +1887,7 @@ export const ProductInfo = ({ category }) => {
                   id="minOrderQty"
                   type="number"
                   placeholder="1"
+                  min={1}
                   {...register('minOrderQty', { min: 1 })}
                   data-testid="input-min-qty"
                 />
@@ -1876,6 +1899,7 @@ export const ProductInfo = ({ category }) => {
                   id="maxOrderQty"
                   type="number"
                   placeholder="100"
+                  min={1}
                   {...register('maxOrderQty', { min: 1 })}
                   data-testid="input-max-qty"
                 />
@@ -2030,7 +2054,7 @@ export const ProductInfo = ({ category }) => {
                 className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3]"
                 data-testid="btn-add-variation"
               >
-                Proceed to Add
+                {editVariationIndex !== null ? 'Update variation' : 'Proceed to Add'}
               </Button>
               {productsVariations.length === 0 && (
                 <p className="text-sm text-gray-500 mt-3">No variations added yet</p>
@@ -2040,13 +2064,12 @@ export const ProductInfo = ({ category }) => {
                   <table className="w-full border-collapse bg-white text-sm">
                     <thead className="bg-[#F9FAFB] text-[#374151]">
                       <tr>
-                        {hasSizeOptions && <th className="px-3 py-2 text-center font-medium">Size</th>}
+                        {(!isVoucherCategory || hasSizeOptions) && <th className="px-3 py-2 text-center font-medium">Size</th>}
                         {voucherPiConfig?.extraVariantColumn === 'color' && <th className="px-3 py-2 text-center font-medium">Color</th>}
                         {voucherPiConfig?.extraVariantColumn === 'flavor' && <th className="px-3 py-2 text-center font-medium">Flavor</th>}
                         {voucherPiConfig?.extraVariantColumn === 'offeringType' && <th className="px-3 py-2 text-center font-medium">Offering Type</th>}
                         {showDateOfEvent && <th className="px-3 py-2 text-center font-medium">Event Date</th>}
-                        {!isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Size</th>}
-                        {!isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Color</th>}
+                        {showProductColor && <th className="px-3 py-2 text-center font-medium">Color</th>}
                         <th className="px-3 py-2 text-center font-medium">HSN</th>
                         <th className="px-3 py-2 text-center font-medium">GST</th>
                         <th className="px-3 py-2 text-center font-medium">MRP</th>
@@ -2066,7 +2089,7 @@ export const ProductInfo = ({ category }) => {
                           key={v.ProductIdType || idx}
                           className="border-t border-[#E5E8EB] hover:bg-[#F9FAFB]"
                         >
-                          {hasSizeOptions && (
+                          {(!isVoucherCategory || hasSizeOptions) && (
                             <td className="px-3 py-2">
                               {v.ShoeSize ? `${v.ShoeSize} (${v.MeasurementUnit || ''})` : v.ProductSize || '—'}
                             </td>
@@ -2090,12 +2113,7 @@ export const ProductInfo = ({ category }) => {
                           {showDateOfEvent && (
                             <td className="px-3 py-2">{v.DateOfTheEvent || '—'}</td>
                           )}
-                          {!isVoucherCategory && (
-                            <td className="px-3 py-2">
-                              {v.ShoeSize ? `${v.ShoeSize} (${v.MeasurementUnit || ''})` : v.ProductSize || '—'}
-                            </td>
-                          )}
-                          {!isVoucherCategory && (
+                          {showProductColor && (
                             <td className="px-3 py-2">
                               {v.ProductColor ? (
                                 <div className="flex items-center justify-center gap-2">
@@ -2107,21 +2125,31 @@ export const ProductInfo = ({ category }) => {
                           )}
                           <td className="px-3 py-2">{v.HSN || '—'}</td>
                           <td className="px-3 py-2">{v.GST ? `${v.GST}%` : '—'}</td>
-                          <td className="px-3 py-2 font-medium">{v.PricePerUnit ? `₹${Number(v.PricePerUnit).toLocaleString()}` : '—'}</td>
-                          <td className="px-3 py-2 font-medium">{v.DiscountedPrice ? `₹${Number(v.DiscountedPrice).toLocaleString()}` : '—'}</td>
+                          <td className="px-3 py-2 font-medium">{v.PricePerUnit ? `${Number(v.PricePerUnit).toLocaleString()}` : '—'}</td>
+                          <td className="px-3 py-2 font-medium">{v.DiscountedPrice ? `${Number(v.DiscountedPrice).toLocaleString()}` : '—'}</td>
                           {isVoucherCategory && <td className="px-3 py-2">{v.TotalAvailableQty ?? '—'}</td>}
                           <td className="px-3 py-2">{v.MinOrderQuantity ?? '—'}</td>
                           <td className="px-3 py-2">{v.MaxOrderQuantity ?? '—'}</td>
                           {isVoucherCategory && <td className="px-3 py-2">{v.validityOfVoucherValue ? `${v.validityOfVoucherValue} Mo` : '—'}</td>}
                           {!isVoucherCategory && <td className="px-3 py-2">{v.ProductIdType || '—'}</td>}
                           <td className="px-3 py-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveVariation(idx)}
-                              className="text-[#6B7A99] hover:text-[#C64091] p-1"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
+                            <div className="inline-flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleEditVariation(idx)}
+                                className="text-[#6B7A99] hover:text-[#C64091] px-2 py-1 text-xs font-medium rounded border border-[#E5E8EB] hover:border-[#C64091]"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveVariation(idx)}
+                                className="text-[#6B7A99] hover:text-[#C64091] p-1"
+                                aria-label="Remove variation"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -2277,9 +2305,20 @@ export const ProductInfo = ({ category }) => {
                     >
                       <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
                       <SelectContent>
-                        {cityArray?.map((c, i) => (
-                          <SelectItem key={i} value={c}>{c}</SelectItem>
-                        ))}
+                        {(() => {
+                          const normalize = (s) => String(s || '').toLowerCase().replace(/\s+/g, '');
+                          const current = String(locationDetails.city || '');
+                          const base = Array.isArray(cityArray) ? cityArray : [];
+                          const merged =
+                            current && !base.some((c) => normalize(c) === normalize(current))
+                              ? [current, ...base]
+                              : base;
+                          return merged.map((c, i) => (
+                            <SelectItem key={`${String(c)}-${i}`} value={String(c)}>
+                              {String(c)}
+                            </SelectItem>
+                          ));
+                        })()}
                       </SelectContent>
                     </Select>
                   </div>
@@ -2294,6 +2333,131 @@ export const ProductInfo = ({ category }) => {
                 </div>
               </div>
               </>
+            )}
+
+            
+            {/* Manufacturing & Expiry Dates – for electronics, fmcg, officesupply, mobility, restaurant, others */}
+            {hasManufacturingDates && ['electronics', 'fmcg', 'officesupply', 'mobility', 'restaurant', 'others'].includes(category) && (
+              <div className="space-y-4 pt-4">
+                <h3 className="text-base font-semibold text-[#111827]">Product Dates</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Manufacturing Date */}
+                  <div className="space-y-2">
+                    <Label>
+                      Manufacturing Date{' '}
+                      {currentDateReqs.manufacturing === 'mandatory' && <span className="text-red-500">*</span>}
+                    </Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            'w-full justify-start text-left font-normal',
+                            !manufacturingDate && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {manufacturingDate ? format(manufacturingDate, 'PPP') : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={manufacturingDate}
+                          onSelect={setManufacturingDate}
+                          disabled={(date) => date > new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Expiry Date */}
+                  <div className="space-y-2">
+                    {/* For FMCG, expiry is mandatory (no checkbox) */}
+                    {category === 'fmcg' ? (
+                      <>
+                        <Label>
+                          Expiry Date <span className="text-red-500">*</span>
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className={cn(
+                                'w-full justify-start text-left font-normal',
+                                !expiryDate && 'text-muted-foreground'
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {expiryDate ? format(expiryDate, 'PPP') : <span>Pick a date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={expiryDate}
+                              onSelect={setExpiryDate}
+                              disabled={(date) => {
+                                if (date < new Date()) return true;
+                                if (manufacturingDate && date <= manufacturingDate) return true;
+                                return false;
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="has-expiry"
+                            checked={hasExpiryDate}
+                            onCheckedChange={setHasExpiryDate}
+                          />
+                          <Label htmlFor="has-expiry" className="cursor-pointer">
+                            This product has an expiry date
+                          </Label>
+                        </div>
+                        {hasExpiryDate && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className={cn(
+                                  'w-full justify-start text-left font-normal',
+                                  !expiryDate && 'text-muted-foreground'
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {expiryDate ? format(expiryDate, 'PPP') : <span>Pick a date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={expiryDate}
+                                onSelect={setExpiryDate}
+                                disabled={(date) => {
+                                  if (date < new Date()) return true;
+                                  if (manufacturingDate && date <= manufacturingDate) return true;
+                                  return false;
+                                }}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
 
             <Divider/>
@@ -2335,7 +2499,7 @@ export const ProductInfo = ({ category }) => {
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="₹">INR (₹)</SelectItem>
-                        <SelectItem value="BXITokens">BXI Tokens</SelectItem>
+                        <SelectItem value="BXITokens">BXI Tokens <img src={bxitoken} alt="BXI Token" className="w-4 h-4 inline-block ml-1" /></SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -2371,7 +2535,12 @@ export const ProductInfo = ({ category }) => {
                     />
                   </div>
                   <div className="flex items-end">
-                    <Button type="button" variant="secondary" onClick={handleAddOtherCost}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleAddOtherCost}
+                      className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3]"
+                    >
                       Add Additional Cost
                     </Button>
                   </div>
@@ -2411,7 +2580,7 @@ export const ProductInfo = ({ category }) => {
                           </td>
 
                           <td className="px-3 py-2">
-                            {oc.currencyType}
+                            {oc.currencyType === 'BXITokens' ? <img src={bxitoken} alt="BXI Token" className="w-4 h-4 inline-block ml-1" /> : '₹'}
                           </td>
 
                           <td className="px-3 py-2">
@@ -2442,70 +2611,6 @@ export const ProductInfo = ({ category }) => {
                 </div>
               )}
               </div>
-            )}
-
-            {/* Tags – voucher categories */}
-            {isVoucherCategory && (
-              <>
-              <Divider/>
-              <div className="space-y-4 pt-4">
-                <h3 className="text-base font-semibold text-[#111827]">
-                  Tags <span className="text-sm font-normal text-[#6B7A99]">(Keywords that improve search visibility)</span> <span className="text-red-500">*</span>
-                </h3>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter a tag (max 15 chars)"
-                    maxLength={15}
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const t = tagInput.trim();
-                        if (t && !tags.includes(t)) {
-                          setTags((prev) => [...prev, t]);
-                          setTagInput('');
-                        }
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      const t = tagInput.trim();
-                      if (t && !tags.includes(t)) {
-                        setTags((prev) => [...prev, t]);
-                        setTagInput('');
-                      }
-                    }}
-                    disabled={!tagInput.trim() || tags.includes(tagInput.trim())}
-                  >
-                    <Tag className="w-4 h-4 mr-1" /> Add
-                  </Button>
-                </div>
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                  {tags.map((t, i) => (
-                    <div
-                      key={i}
-                      className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#FCE7F3] to-[#FDE2F2] text-[#9D174D] text-sm font-medium border border-[#F9A8D4] shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.03]" >
-                      <span className="truncate max-w-[140px]">{t}</span>
-                
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setTags((prev) => prev.filter((_, idx) => idx !== i))
-                        }
-                        className="flex items-center justify-center w-5 h-5 rounded-full bg-white/60 text-[#C64091] transition-all duration-200 hover:bg-red-100 hover:text-red-600" >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                )}
-              </div>
-              </>
             )}
 
             <Divider/>
@@ -2645,6 +2750,70 @@ export const ProductInfo = ({ category }) => {
               )}
             </div>
           )}
+
+          {/* Tags – voucher categories */}
+          {isVoucherCategory && (
+              <>
+              <Divider/>
+              <div className="space-y-4 pt-4">
+                <h3 className="text-base font-semibold text-[#111827]">
+                  Tags <span className="text-sm font-normal text-[#6B7A99]">(Keywords that improve search visibility)</span> <span className="text-red-500">*</span>
+                </h3>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter a tag (max 15 chars)"
+                    maxLength={15}
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const t = tagInput.trim();
+                        if (t && !tags.includes(t)) {
+                          setTags((prev) => [...prev, t]);
+                          setTagInput('');
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      const t = tagInput.trim();
+                      if (t && !tags.includes(t)) {
+                        setTags((prev) => [...prev, t]);
+                        setTagInput('');
+                      }
+                    }}
+                    disabled={!tagInput.trim() || tags.includes(tagInput.trim())}
+                  >
+                    <Tag className="w-4 h-4 mr-1" /> Add
+                  </Button>
+                </div>
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                  {tags.map((t, i) => (
+                    <div
+                      key={i}
+                      className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#FCE7F3] to-[#FDE2F2] text-[#9D174D] text-sm font-medium border border-[#F9A8D4] shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.03]" >
+                      <span className="truncate max-w-[140px]">{t}</span>
+                
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTags((prev) => prev.filter((_, idx) => idx !== i))
+                        }
+                        className="flex items-center justify-center w-5 h-5 rounded-full bg-white/60 text-[#C64091] transition-all duration-200 hover:bg-red-100 hover:text-red-600" >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                )}
+              </div>
+              </>
+            )}
             {/* Actions */}
             <div className="flex justify-between pt-6">
               <Button
@@ -2676,6 +2845,8 @@ export const ProductInfo = ({ category }) => {
               </Button>
             </div>
           </form>
+            </div>
+          </main>
         </div>
       </div>
     </div>
@@ -2689,6 +2860,8 @@ export const TechInfo = ({ category }) => {
   const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productData, setProductData] = useState(null);
+  const [tags, setTags] = useState([]);
+  const [currentTag, setCurrentTag] = useState('');
 
   const { prev: prevPath, next: nextPath } = getPrevNextStepPaths(category, 'techInfo', location?.pathname);
   const prevStepPath = prevPath || 'product-info';
@@ -2696,22 +2869,14 @@ export const TechInfo = ({ category }) => {
 
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: {
-      weight: '',
-      dimensions: '',
-      material: '',
-      warranty: '',
-      guaranteePeriod: '',
-      guaranteeDetails: '',
-      packagingType: '',
-      packagingDetails: '',
+      warrantyValue: '',
+      warrantyPeriod: 'Year',
+      guaranteeValue: '',
+      guaranteePeriod: 'Year',
+      weightBeforePacking: '',
+      weightUnit: 'Grams',
+      packagingInstructions: '',
       usageInstructions: '',
-      careInstructions: '',
-      safetyWarnings: '',
-      legalCompliance: '',
-      certifications: '',
-      tags: '',
-      additionalInfo: '',
-      weightAfterPacking: '',
     }
   });
 
@@ -2724,25 +2889,17 @@ export const TechInfo = ({ category }) => {
         setProductData(res?.data);
         
         // Pre-fill if data exists
-        if (res?.data?.ProductTechInfo) {
-          const techInfo = res.data.ProductTechInfo;
-          setValue('weight', techInfo.WeightBeforePackingPerUnit || '');
-          setValue('dimensions', `${techInfo.Length || ''} x ${techInfo.Width || ''} x ${techInfo.Height || ''}`.trim());
-          setValue('warranty', techInfo.Warranty || '');
-          setValue('guaranteePeriod', techInfo.GuaranteePeriod || '');
-          setValue('guaranteeDetails', techInfo.GuaranteeDetails || '');
-          setValue('packagingType', techInfo.PackagingType || '');
-          setValue('packagingDetails', techInfo.PackagingDetails || '');
-          setValue('usageInstructions', techInfo.UsageInstructions || '');
-          setValue('careInstructions', techInfo.CareInstructions || '');
-          setValue('safetyWarnings', techInfo.SafetyWarnings || '');
-          setValue('legalCompliance', techInfo.LegalCompliance || '');
-          setValue('certifications', techInfo.Certifications || '');
-          setValue('weightAfterPacking', techInfo.WeightAfterPackingPerUnit || '');
-        }
-        
-        if (res?.data?.ProductTags) {
-          setValue('tags', res.data.ProductTags.join(', '));
+        const techInfo = res?.data?.ProductTechInfo || {};
+        if (techInfo) {
+          if (techInfo.Warranty != null) setValue('warrantyValue', String(techInfo.Warranty));
+          if (res?.data?.WarrantyPeriod) setValue('warrantyPeriod', res.data.WarrantyPeriod);
+          if (techInfo.Guarantee != null) setValue('guaranteeValue', String(techInfo.Guarantee));
+          if (res?.data?.GuaranteePeriod) setValue('guaranteePeriod', res.data.GuaranteePeriod);
+          if (techInfo.WeightBeforePackingPerUnit != null) setValue('weightBeforePacking', String(techInfo.WeightBeforePackingPerUnit));
+          if (res?.data?.WeightBeforePackingPerUnitMeasurUnit) setValue('weightUnit', res.data.WeightBeforePackingPerUnitMeasurUnit);
+          setValue('packagingInstructions', techInfo.PackagingAndDeliveryInstructionsIfAny || '');
+          setValue('usageInstructions', techInfo.InstructionsToUseProduct || '');
+          if (Array.isArray(techInfo.Tags) && techInfo.Tags.length > 0) setTags(techInfo.Tags);
         }
       } catch (error) {
         console.error('Error fetching product:', error);
@@ -2756,33 +2913,26 @@ export const TechInfo = ({ category }) => {
       toast.error('Product ID missing. Please start from General Information.');
       return;
     }
+    if (!tags || tags.length < 1) {
+      toast.error('Please add at least one tag');
+      return;
+    }
     setIsSubmitting(true);
     try {
-      const tags = data.tags
-        ? data.tags.split(',').map((t) => t.trim()).filter(Boolean)
-        : [];
-
       const payload = {
         _id: id,
         ProductUploadStatus: 'golive',
+        WarrantyPeriod: data.warrantyPeriod,
+        GuaranteePeriod: data.guaranteePeriod,
+        WeightBeforePackingPerUnitMeasurUnit: data.weightUnit,
         ProductTechInfo: {
-          Warranty: data.warranty || '',
-          GuaranteePeriod: data.guaranteePeriod || '',
-          GuaranteeDetails: data.guaranteeDetails || '',
-          WeightBeforePackingPerUnit: data.weight || '',
-          Length: data.length || data.dimensions?.split?.('x')?.[0]?.trim() || '',
-          Width: data.width || data.dimensions?.split?.('x')?.[1]?.trim() || '',
-          Height: data.height || data.dimensions?.split?.('x')?.[2]?.trim() || '',
-          PackagingType: data.packagingType || '',
-          PackagingDetails: data.packagingDetails || '',
-          UsageInstructions: data.usageInstructions || '',
-          CareInstructions: data.careInstructions || '',
-          SafetyWarnings: data.safetyWarnings || '',
-          LegalCompliance: data.legalCompliance || '',
-          Certifications: data.certifications || '',
-          WeightAfterPackingPerUnit: data.weightAfterPacking || '',
+          Warranty: Number(data.warrantyValue),
+          Guarantee: Number(data.guaranteeValue),
+          WeightBeforePackingPerUnit: Number(data.weightBeforePacking),
+          PackagingAndDeliveryInstructionsIfAny: data.packagingInstructions,
+          InstructionsToUseProduct: data.usageInstructions,
+          Tags: tags,
         },
-        ProductTags: tags,
       };
       await productApi.updateProduct(payload);
       toast.success('Technical information saved!');
@@ -2796,287 +2946,171 @@ export const TechInfo = ({ category }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] py-8" data-testid="tech-info-page">
+    <div className="min-h-screen bg-[#F8F9FA] py-4" data-testid="tech-info-page">
       <div className="form-container">
-        <Stepper currentStep={3} completedSteps={[1, 2]} />
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={3} completedSteps={[1, 2]} />
+          </aside>
 
-        <div className="form-section">
-          <h2 className="form-section-title">Technical Information</h2>
-          
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Weight & Dimensions */}
-            <div className="space-y-4">
-              <h3 className="text-base font-semibold text-[#111827]">Physical Specifications</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="weight">Weight (kg) <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="weight"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    {...register('weight', {
-                      required: 'Weight is required',
-                      min: {
-                        value: 0.01,
-                        message: 'Weight must be greater than 0'
-                      }
-                    })}
-                    data-testid="input-weight"
-                  />
-                  {errors.weight && (
-                    <p className="text-sm text-red-500">{errors.weight.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="weightAfterPacking">Weight After Packaging (kg)</Label>
-                  <Input
-                    id="weightAfterPacking"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    {...register('weightAfterPacking', {
-                      min: {
-                        value: 0.01,
-                        message: 'Weight must be greater than 0'
-                      }
-                    })}
-                    data-testid="input-weight-after-packing"
-                  />
-                  {errors.weightAfterPacking && (
-                    <p className="text-sm text-red-500">{errors.weightAfterPacking.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="dimensions">Dimensions (L x W x H cm) <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="dimensions"
-                    placeholder="10 x 10 x 10"
-                    {...register('dimensions', {
-                      required: 'Dimensions are required',
-                      pattern: {
-                        value: /^\d+(\.\d+)?\s*x\s*\d+(\.\d+)?\s*x\s*\d+(\.\d+)?$/,
-                        message: 'Format must be Length x Width x Height (e.g., 10 x 10 x 10)'
-                      }
-                    })}
-                    data-testid="input-dimensions"
-                  />
-                  {errors.dimensions && (
-                    <p className="text-sm text-red-500">{errors.dimensions.message}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Material */}
-              <div className="space-y-2">
-                <Label htmlFor="material">Material</Label>
-                <Input
-                  id="material"
-                  placeholder="e.g., Cotton, Polyester, Metal"
-                  {...register('material')}
-                  data-testid="input-material"
-                />
-              </div>
-            </div>
-
+          <main className="stepper-content">
+            <div className="form-section">
+              <h2 className="form-section-title">Technical Information - {category.charAt(0).toUpperCase() + category.slice(1)}</h2>
+              
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Warranty & Guarantee */}
-            <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
+            <div className="space-y-4">
               <h3 className="text-base font-semibold text-[#111827]">Warranty & Guarantee</h3>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label>Warranty Period <span className="text-red-500">*</span></Label>
-                  <input
-                    type="hidden"
-                    {...register('warranty', { required: 'Warranty period is required' })}
-                  />
-                  <Select
-                    value={watch('warranty')}
-                    onValueChange={(value) => setValue('warranty', value, { shouldValidate: true })}
-                  >
-                    <SelectTrigger className={errors.warranty ? 'border-red-500' : ''} data-testid="select-warranty">
-                      <SelectValue placeholder="Select warranty period" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Warranty</SelectItem>
-                      <SelectItem value="3months">3 Months</SelectItem>
-                      <SelectItem value="6months">6 Months</SelectItem>
-                      <SelectItem value="1year">1 Year</SelectItem>
-                      <SelectItem value="2years">2 Years</SelectItem>
-                      <SelectItem value="5years">5 Years</SelectItem>
-                      <SelectItem value="lifetime">Lifetime</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.warranty && (
-                    <p className="text-sm text-red-500">{errors.warranty.message}</p>
-                  )}
+                  <Label>Warranty <span className="text-red-500">*</span></Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="1"
+                      {...register('warrantyValue', { required: 'Warranty is required', min: 1 })}
+                      className={errors.warrantyValue ? 'border-red-500' : ''}
+                    />
+                    <Select value={watch('warrantyPeriod')} onValueChange={(v) => setValue('warrantyPeriod', v)}>
+                      <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Year">Year</SelectItem>
+                        <SelectItem value="Month">Month</SelectItem>
+                        <SelectItem value="Days">Days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {errors.warrantyValue && <p className="text-sm text-red-500">{errors.warrantyValue.message}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Guarantee Period (Optional)</Label>
-                  <Select
-                    value={watch('guaranteePeriod')}
-                    onValueChange={(value) => setValue('guaranteePeriod', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select guarantee period" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Guarantee</SelectItem>
-                      <SelectItem value="6months">6 Months</SelectItem>
-                      <SelectItem value="1year">1 Year</SelectItem>
-                      <SelectItem value="2years">2 Years</SelectItem>
-                      <SelectItem value="3years">3 Years</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Guarantee <span className="text-red-500">*</span></Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="1"
+                      {...register('guaranteeValue', { required: 'Guarantee is required', min: 1 })}
+                      className={errors.guaranteeValue ? 'border-red-500' : ''}
+                    />
+                    <Select value={watch('guaranteePeriod')} onValueChange={(v) => setValue('guaranteePeriod', v)}>
+                      <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Year">Year</SelectItem>
+                        <SelectItem value="Month">Month</SelectItem>
+                        <SelectItem value="Days">Days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {errors.guaranteeValue && <p className="text-sm text-red-500">{errors.guaranteeValue.message}</p>}
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="guaranteeDetails">Warranty/Guarantee Details (Optional)</Label>
-                <Textarea
-                  id="guaranteeDetails"
-                  placeholder="What does the warranty/guarantee cover? Any exclusions?"
-                  rows={3}
-                  {...register('guaranteeDetails')}
-                />
-              </div>
             </div>
 
-            {/* Packaging */}
+            {/* Weight before packing */}
             <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
-              <h3 className="text-base font-semibold text-[#111827]">Packaging Information</h3>
-              
-              <div className="space-y-2">
-                <Label>Packaging Type <span className="text-red-500">*</span></Label>
-                <input
-                  type="hidden"
-                  {...register('packagingType', { required: 'Packaging type is required' })}
-                />
-                <Select
-                  value={watch('packagingType')}
-                  onValueChange={(value) =>
-                    setValue('packagingType', value, { shouldValidate: true })
-                  }
-                >
-                  <SelectTrigger className={errors.packagingType ? 'border-red-500' : ''}>
-                    <SelectValue placeholder="Select packaging type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="box">Box</SelectItem>
-                    <SelectItem value="poly-bag">Poly Bag</SelectItem>
-                    <SelectItem value="bubble-wrap">Bubble Wrap</SelectItem>
-                    <SelectItem value="carton">Carton</SelectItem>
-                    <SelectItem value="shrink-wrap">Shrink Wrap</SelectItem>
-                    <SelectItem value="eco-friendly">Eco-Friendly</SelectItem>
-                    <SelectItem value="custom">Custom</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.packagingType && (
-                  <p className="text-sm text-red-500">{errors.packagingType.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="packagingDetails">Packaging Details (Optional)</Label>
-                <Textarea
-                  id="packagingDetails"
-                  placeholder="Describe the packaging, materials used, sustainability aspects..."
-                  rows={3}
-                  {...register('packagingDetails')}
-                />
+              <h3 className="text-base font-semibold text-[#111827]">Weight Before Packing (per unit)</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>Weight <span className="text-red-500">*</span></Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="1"
+                      {...register('weightBeforePacking', { required: 'Weight is required', min: 1 })}
+                      className={errors.weightBeforePacking ? 'border-red-500' : ''}
+                    />
+                    <Select value={watch('weightUnit')} onValueChange={(v) => setValue('weightUnit', v)}>
+                      <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Grams">Grams</SelectItem>
+                        <SelectItem value="KiloGrams">KiloGrams</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {errors.weightBeforePacking && <p className="text-sm text-red-500">{errors.weightBeforePacking.message}</p>}
+                </div>
               </div>
             </div>
 
-            {/* Usage & Care Instructions */}
-            <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
-              <h3 className="text-base font-semibold text-[#111827]">Usage & Care Instructions</h3>
-              
-              <div className="space-y-2">
-                <Label htmlFor="usageInstructions">Usage Instructions (Optional)</Label>
-                <Textarea
-                  id="usageInstructions"
-                  placeholder="How to use this product? Step-by-step instructions..."
-                  rows={4}
-                  {...register('usageInstructions')}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="careInstructions">Care & Maintenance Instructions (Optional)</Label>
-                <Textarea
-                  id="careInstructions"
-                  placeholder="How to clean, maintain, or store this product?"
-                  rows={3}
-                  {...register('careInstructions')}
-                />
-              </div>
-            </div>
-
-            {/* Legal & Safety */}
-            <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
-              <h3 className="text-base font-semibold text-[#111827]">Legal & Safety Information</h3>
-              
-              <div className="space-y-2">
-                <Label htmlFor="safetyWarnings">Safety Warnings (Optional)</Label>
-                <Textarea
-                  id="safetyWarnings"
-                  placeholder="Any safety warnings, age restrictions, or hazard information..."
-                  rows={3}
-                  {...register('safetyWarnings')}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="legalCompliance">Legal Compliance (Optional)</Label>
-                <Textarea
-                  id="legalCompliance"
-                  placeholder="Compliance standards (ISO, CE, FDA, etc.), regulations met..."
-                  rows={2}
-                  {...register('legalCompliance')}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="certifications">Certifications (Optional)</Label>
-                <Input
-                  id="certifications"
-                  placeholder="e.g., ISO 9001, CE Mark, FDA Approved (comma separated)"
-                  {...register('certifications')}
-                />
-              </div>
-            </div>
-
-            {/* Tags */}
+            {/* Packaging instructions */}
             <div className="space-y-2 pt-4 border-t border-[#E5E8EB]">
-              <Label htmlFor="tags">
-                <Tag className="w-4 h-4 inline mr-2" />
-                Product Tags <span className="text-red-500">*</span>
+              <Label>
+                Packaging instructions <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="tags"
-                placeholder="eco-friendly, handmade, premium, limited-edition (comma separated)"
-                {...register('tags', { required: 'Product tags are required' })}
-                className={errors.tags ? 'border-red-500' : ''}
+              <Textarea
+                rows={4}
+                placeholder="Add packaging and delivery instructions..."
+                {...register('packagingInstructions', { required: 'Packaging instructions are required' })}
+                className={errors.packagingInstructions ? 'border-red-500' : ''}
               />
-              {errors.tags && (
-                <p className="text-sm text-red-500">{errors.tags.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Add tags to help customers find your product</p>
+              {errors.packagingInstructions && <p className="text-sm text-red-500">{errors.packagingInstructions.message}</p>}
             </div>
 
-            {/* Additional Info */}
+            {/* Usage instructions */}
             <div className="space-y-2">
-              <Label htmlFor="additionalInfo">Additional Information (Optional)</Label>
+              <Label>
+                Instructions to use product <span className="text-red-500">*</span>
+              </Label>
               <Textarea
-                id="additionalInfo"
-                placeholder="Any other technical or important details..."
                 rows={4}
-                {...register('additionalInfo')}
-                data-testid="input-additional-info"
+                placeholder="Add instructions to use this product..."
+                {...register('usageInstructions', { required: 'Instructions are required' })}
+                className={errors.usageInstructions ? 'border-red-500' : ''}
               />
+              {errors.usageInstructions && <p className="text-sm text-red-500">{errors.usageInstructions.message}</p>}
+            </div>
+
+            {/* Tags (min 1) */}
+            <div className="space-y-3 pt-4 border-t border-[#E5E8EB]">
+              <Label>Tags (min 1) <span className="text-red-500">*</span></Label>
+              <div className="flex gap-2">
+                <Input
+                  value={currentTag}
+                  onChange={(e) => setCurrentTag(e.target.value.slice(0, 20))}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ' && e.target.selectionStart === 0) e.preventDefault();
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const v = currentTag.trim();
+                      if (!v) return;
+                      if (tags.includes(v)) return;
+                      setTags((p) => [...p, v]);
+                      setCurrentTag('');
+                    }
+                  }}
+                  placeholder="Type a tag and press Enter"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-[#C64091] text-[#C64091]"
+                  onClick={() => {
+                    const v = currentTag.trim();
+                    if (!v) return;
+                    if (tags.includes(v)) return;
+                    setTags((p) => [...p, v]);
+                    setCurrentTag('');
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+              {tags.length === 0 && (
+                <p className="text-sm text-[#6B7A99]">Add at least one tag to continue.</p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {tags.map((t) => (
+                  <span key={t} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#F3F4F6] text-sm text-[#6B7A99]">
+                    {t}
+                    <button type="button" onClick={() => setTags((p) => p.filter((x) => x !== t))} className="text-red-500 hover:text-red-700">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
 
             {/* Actions */}
@@ -3094,11 +3128,12 @@ export const TechInfo = ({ category }) => {
                 type="submit"
                 disabled={
                   isSubmitting ||
-                  !watch('weight') ||
-                  !watch('dimensions') ||
-                  !watch('warranty') ||
-                  !watch('packagingType') ||
-                  !watch('tags')?.trim()
+                  !watch('warrantyValue') ||
+                  !watch('guaranteeValue') ||
+                  !watch('weightBeforePacking') ||
+                  !watch('packagingInstructions')?.trim() ||
+                  !watch('usageInstructions')?.trim() ||
+                  tags.length < 1
                 }
                 className="bg-[#C64091] hover:bg-[#A03375]"
                 data-testid="btn-save-next"
@@ -3107,7 +3142,9 @@ export const TechInfo = ({ category }) => {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
-          </form>
+              </form>
+            </div>
+          </main>
         </div>
       </div>
     </div>
@@ -3322,12 +3359,16 @@ export const GoLive = ({ category }) => {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8" data-testid="go-live-page">
-      <div className="form-container max-w-6xl">
-        <Stepper currentStep={4} completedSteps={[1, 2, 3]} />
+      <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={4} completedSteps={[1, 2, 3]} />
+          </aside>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <div className="form-section">
+          <main className="stepper-content">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <div className="form-section">
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
                   <h2 className="form-section-title text-[#C64091]">Go Live - Product Images</h2>
@@ -3534,7 +3575,7 @@ export const GoLive = ({ category }) => {
                 </div>
                 <div className="p-4">
                   <p className="font-semibold text-[#111827] truncate">{productData?.ProductName || 'Product Name'}</p>
-                  <p className="text-[#C64091] font-bold mt-1">₹{previewPrice || 0}</p>
+                  <p className="text-[#C64091] font-bold mt-1"><img src={bxitoken} alt="BXI Token" className="w-4 h-4 inline-block ml-1" /> {previewPrice || 0}</p>
                 </div>
               </div>
               <div className="mt-4 p-4 rounded-lg bg-[#F8F9FA]">
@@ -3544,33 +3585,35 @@ export const GoLive = ({ category }) => {
                 </p>
               </div>
             </div>
-          </div>
-        </div>
+              </div>
+            </div>
 
-        {(productData?.ProductImages?.length > 0 || sizeChartPreview) && (
-          <div className="mt-8 form-section">
-            <h3 className="font-semibold text-[#111827] mb-4">Previously Uploaded</h3>
-            {productData?.ProductImages?.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                {productData.ProductImages.map((img, i) => (
-                  <div
-                    key={i}
-                    className="rounded-lg overflow-hidden border cursor-pointer hover:border-[#C64091]"
-                    onClick={() => setSelectedPreviewImage(img.url)}
-                  >
-                    <img src={img.url} alt={`Previous ${i + 1}`} className="w-full aspect-square object-contain bg-gray-50" />
+            {(productData?.ProductImages?.length > 0 || sizeChartPreview) && (
+              <div className="mt-8 form-section">
+                <h3 className="font-semibold text-[#111827] mb-4">Previously Uploaded</h3>
+                {productData?.ProductImages?.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                    {productData.ProductImages.map((img, i) => (
+                      <div
+                        key={i}
+                        className="rounded-lg overflow-hidden border cursor-pointer hover:border-[#C64091]"
+                        onClick={() => setSelectedPreviewImage(img.url)}
+                      >
+                        <img src={img.url} alt={`Previous ${i + 1}`} className="w-full aspect-square object-contain bg-gray-50" />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+                {sizeChartPreview && (
+                  <div className="mt-4">
+                    <Label className="text-sm font-semibold">Size Chart</Label>
+                    <img src={sizeChartPreview} alt="Size chart" className="mt-2 max-w-xs rounded border" />
+                  </div>
+                )}
               </div>
             )}
-            {sizeChartPreview && (
-              <div className="mt-4">
-                <Label className="text-sm font-semibold">Size Chart</Label>
-                <img src={sizeChartPreview} alt="Size chart" className="mt-2 max-w-xs rounded border" />
-              </div>
-            )}
-          </div>
-        )}
+          </main>
+        </div>
       </div> 
     </div>
   );

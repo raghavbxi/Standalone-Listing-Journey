@@ -9,6 +9,7 @@ const queryClient = new QueryClient();
 
 // Layout
 import { Layout } from './components/layout/Layout';
+import ScrollToTop from './components/ScrollToTop';
 
 // Pages
 import SellerHub from './pages/SellerHub';

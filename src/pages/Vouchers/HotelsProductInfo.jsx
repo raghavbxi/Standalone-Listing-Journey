@@ -441,7 +441,7 @@ export default function HotelsProductInfo({ category }) {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
-      <div className="form-container max-w-4xl mx-auto px-4">
+      <div className="form-container">
         <Stepper currentStep={2} completedSteps={[1]} />
         <div className="form-section bg-white rounded-lg shadow-sm p-6">
           <h2 className="form-section-title text-xl font-semibold text-[#111827] mb-1">Voucher Information</h2>
@@ -455,7 +455,7 @@ export default function HotelsProductInfo({ category }) {
             {submitSectionErrors && (
               <p className="text-sm text-red-500 bg-red-50 p-2 rounded">{submitSectionErrors}</p>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <Label>Price/Voucher *</Label>
                 <Input
@@ -527,7 +527,7 @@ export default function HotelsProductInfo({ category }) {
                 <Label>Max</Label>
                 <Input
                   type="number"
-                  min={0}
+                  min={1}
                   value={newVariant.MaxOrderQuantity}
                   onChange={(e) => { setNewVariant((p) => ({ ...p, MaxOrderQuantity: e.target.value })); setVariantErrors((prev) => ({ ...prev, MaxOrderQuantity: undefined })); }}
                   placeholder="Optional"
@@ -618,7 +618,7 @@ export default function HotelsProductInfo({ category }) {
           {!isGSTZeroSelected && (
             <div className="space-y-4 mb-8">
               <h3 className="text-base font-semibold text-[#111827]">Additional Cost (optional)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label>Applicable On</Label>
                   <Select
