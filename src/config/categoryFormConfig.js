@@ -410,7 +410,7 @@ export function getValidationSchema(category, step = 'generalInfo') {
  */
 export const PRODUCT_INFO_CONFIG = {
   textile: {
-    sizeOptions: ['Shoes', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL', 'Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Custom Size'],
+    sizeOptions: ['Shoes Size', 'Length', 'Length x Height', 'Length x Height x Width', 'Custom Size'],
     defaultSize: 'S',
     hasColorPicker: true,
     hasProductId: true,
@@ -454,14 +454,14 @@ export const PRODUCT_INFO_CONFIG = {
     commonFields: ['price', 'discountedPrice', 'minOrderQty', 'maxOrderQty', 'gst', 'hsn'],
   },
   others: {
-    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'GSM', 'Volume', 'CalorieCount', 'ShelfLife', 'NutritionalInformation', 'Temprature', 'Shoes', 'BatteryCapacity', 'PowerConsumption', 'Resolution', 'Amplification', 'Frequency', 'Humidity', 'Pressure', 'Custom Size'],
+    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'GSM', 'Volume', 'CalorieCount', 'ShelfLife', 'NutritionalInformation', 'Temprature', 'Shoes Size', 'BatteryCapacity', 'PowerConsumption', 'Resolution', 'Amplification', 'Frequency', 'Humidity', 'Pressure', 'Custom Size'],
     defaultSize: 'Length',
     hasColorPicker: true,
     hasProductId: true,
     commonFields: ['price', 'discountedPrice', 'minOrderQty', 'maxOrderQty', 'gst', 'hsn'],
   },
   lifestyle: {
-    sizeOptions: ['Shoes', 'Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Volume', 'Custom Size'],
+    sizeOptions: ['Shoes Size', 'Length', 'Length x Height', 'Length x Height x Width', 'Custom Size'],
     defaultSize: 'Length',
     hasColorPicker: true,
     hasProductId: true,
@@ -511,7 +511,7 @@ export const VOUCHER_PRODUCT_INFO_CONFIG = {
     hasRedeemedValue: false,
   },
   lifestyleVoucher: {
-    sizeOptions: ['Shoes', 'Length', 'Length x Height', 'Length x Height x Width', 'Custom Size'],
+    sizeOptions: ['Shoes Size', 'Length', 'Length x Height', 'Length x Height x Width', 'Custom Size'],
     extraVariantColumn: 'color',
     hasGender: false,
     hasAirportSelectors: false,
@@ -526,7 +526,7 @@ export const VOUCHER_PRODUCT_INFO_CONFIG = {
   },
   officesupplyVoucher: {
     sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'GSM', 'Custom Size'],
-    extraVariantColumn: 'color',
+    extraVariantColumn: null,
     hasGender: false,
     hasAirportSelectors: false,
     hasRedeemedValue: false,
@@ -560,7 +560,7 @@ export const VOUCHER_PRODUCT_INFO_CONFIG = {
     hasRedeemedValue: false,
   },
   otherVoucher: {
-    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'Volume', 'CalorieCount', 'ShelfLife', 'NutritionalInformation', 'Temprature', 'Shoes', 'BatteryCapacity', 'PowerConsumption', 'Resolution', 'Amplification', 'Frequency', 'Humidity', 'Pressure', 'GSM', 'Custom Size'],
+    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'Volume', 'CalorieCount', 'ShelfLife', 'NutritionalInformation', 'Temprature', 'Shoes Size', 'BatteryCapacity', 'PowerConsumption', 'Resolution', 'Amplification', 'Frequency', 'Humidity', 'Pressure', 'GSM', 'Custom Size'],
     extraVariantColumn: 'color',
     hasGender: true,
     hasAirportSelectors: false,
@@ -625,6 +625,7 @@ export const DATE_REQUIREMENTS = {
   mobility: { manufacturing: 'optional', expiry: 'optional' },
   restaurant: { manufacturing: 'optional', expiry: 'optional' },
   others: { manufacturing: 'mandatory', expiry: 'optional' },
+  lifestyle: { manufacturing: 'mandatory', expiry: 'optional' },
 };
 
 export function getDateRequirements(category) {

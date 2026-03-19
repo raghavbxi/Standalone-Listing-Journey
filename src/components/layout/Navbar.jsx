@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import BXI_logo from "../../assets/BXI Listing LOGO.svg";
 import GoBackIcon from "../../assets/navbarBackIcon.svg";
+import Goback from "../../assets/Goback.svg";
 
 export default function TopNavbar() {
   const { user, companyAvatar } = useAuthUser();
@@ -42,7 +43,7 @@ export default function TopNavbar() {
         onClick={() => (window.location.href = "http://localhost:3000/home")}
         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#C64091] border border-[#C64091] border-2 rounded-md hover:bg-[#C64091] hover:text-white transition"
       >
-        <img src={GoBackIcon}
+        <img src={Goback}
         className="transition group-hover:brightness-0 group-hover:invert"
         />
         Back to Marketplace

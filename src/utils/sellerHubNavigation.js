@@ -2,6 +2,7 @@
  * Resolves the route path for Edit or View actions from Seller Hub
  * Based on product type, company type, listing type, and action
  */
+import { getVoucherJourneyType, VOUCHER_JOURNEY_TYPE } from './voucherType';
 
 // Category route mappings for products
 const categoryRoutes = {
@@ -137,11 +138,11 @@ const resolveViewRoute = ({ product, companyType, listingType, productCategory, 
 
   // Handle Voucher listing type
   if (listingType === 'Voucher') {
-    const voucherType = product?.VoucherType;
-    if (voucherType?.includes('Value Voucher') || voucherType?.includes('Gift Card')) {
+    const voucherType = getVoucherJourneyType(product?.VoucherType);
+    if (voucherType === VOUCHER_JOURNEY_TYPE.VALUE_GIFT) {
       return `/valueandgiftvoucher/${productId}`;
     }
-    if (voucherType?.includes('Offer Specific')) {
+    if (voucherType === VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC) {
       return `/spacificvoucher/${productId}`;
     }
     return `/allvoucherpreview/${productId}`;

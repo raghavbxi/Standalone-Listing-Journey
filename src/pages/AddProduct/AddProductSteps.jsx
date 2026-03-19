@@ -49,6 +49,11 @@ import { supportsBulkUpload, downloadBulkUploadTemplate } from '../../utils/exce
 import { Divider } from '@mui/material';
 import { InfoIcon } from 'lucide-react';
 import bxitoken from '../../assets/bxi-token.svg';
+import {
+  getVoucherJourneyTypeFromStorage,
+  getVoucherJourneyLabel,
+  VOUCHER_JOURNEY_TYPE,
+} from '../../utils/voucherType';
 
 const STATE_REGION_MAP = {
   'Delhi': 'North', 'Haryana': 'North', 'Punjab': 'North', 'Uttar Pradesh': 'North',
@@ -209,6 +214,8 @@ export const GeneralInformation = ({ category }) => {
   const giConfig = getGeneralInfoConfig(category);
   const valSchema = getValidationSchema(category, 'generalInfo');
   const isVoucherCategory = category?.endsWith?.('Voucher');
+  const voucherJourneyType = isVoucherCategory ? getVoucherJourneyTypeFromStorage() : null;
+  const isOfferSpecificVoucher = voucherJourneyType === VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC;
   const nextStepPath = isVoucherCategory
     ? (category === 'hotelsVoucher' ? 'hotelsproductinfo' : 'techinfo')
     : 'product-info';
@@ -231,8 +238,8 @@ export const GeneralInformation = ({ category }) => {
   useEffect(() => {
     // Hotel voucher: subcategory from API when "Offer Specific", else default list (per bxi-dashboard HotelsGeneralInfo)
     if (category === 'hotelsVoucher') {
-      const digitalData = typeof localStorage !== 'undefined' ? localStorage.getItem('digitalData') : null;
-      if (digitalData === 'Offer Specific') {
+      const voucherJourneyType = getVoucherJourneyTypeFromStorage();
+      if (voucherJourneyType === VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC) {
         setSubcategoriesLoading(true);
         setGenderCategoryData([]);
         setSelectedGenderId(null);
@@ -258,10 +265,8 @@ export const GeneralInformation = ({ category }) => {
       } else {
         const defaultHotelSubcategories = [
           'Value Voucher',
-          'Gift Cards',
-          'Valid on All',
-          'Valid on Limited',
-          'Others',
+          'Gift Voucher',
+          'Specific Voucher',
         ];
         const options = defaultHotelSubcategories
           .map((s) => ({ value: s, label: s }))
@@ -394,8 +399,7 @@ export const GeneralInformation = ({ category }) => {
         };
         // bxi-dashboard GeneralInfoTemplate: VoucherType from localStorage (Offer Specific | Value Voucher / Gift Cards )
         if (isVoucherCategory && typeof localStorage !== 'undefined') {
-          const voucherType = localStorage.getItem('digitalData');
-          if (voucherType) payload.VoucherType = voucherType;
+          payload.VoucherType = getVoucherJourneyLabel(getVoucherJourneyTypeFromStorage());
         }
       }
 
@@ -774,6 +778,23 @@ const CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL'];
 const US_SHOE_SIZES = [30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50];
 const UK_SHOE_SIZES = [2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5];
 const EU_SHOE_SIZES = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48];
+const inferSelectedSizeFromVariation = (row, options = []) => {
+  if (!row) return '';
+  if (row.ShoeSize) return 'Shoes';
+  if (row.Length && row.Height && row.Width) return 'Length x Height x Width';
+  if (row.Length && row.Height) return 'Length x Height';
+  if (row.Length) return 'Length';
+  if (row.Weight) return 'Weight';
+
+  const rawSize = String(row.ProductSize || '').trim();
+  if (!rawSize) return '';
+  const normalized = rawSize.toLowerCase();
+  const directMatch = options.find((opt) => String(opt).toLowerCase() === normalized);
+  if (directMatch) return directMatch;
+  if (normalized.includes('ml') || normalized.includes('cl') || normalized.endsWith('l')) return 'Volume';
+  if (normalized.includes('kg') || normalized.includes(' g') || normalized.includes('lb')) return 'Weight';
+  return '';
+};
 
 export const ProductInfo = ({ category }) => {
   const navigate = useNavigate();
@@ -793,6 +814,9 @@ export const ProductInfo = ({ category }) => {
   const [productData, setProductData] = useState(null);
   const descriptionRef = useRef(null);
   const isVoucherCategory = category?.endsWith?.('Voucher');
+  const voucherJourneyType = isVoucherCategory ? getVoucherJourneyTypeFromStorage() : null;
+  const isOfferSpecificVoucher = voucherJourneyType === VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC;
+  const shouldUseDiscountedPrice = !isVoucherCategory;
   
   // Manufacturing & Expiry Dates
   const [manufacturingDate, setManufacturingDate] = useState(null);
@@ -815,23 +839,26 @@ export const ProductInfo = ({ category }) => {
 
   const piConfig = getProductInfoConfig(category);
   const voucherPiConfig = isVoucherCategory ? getVoucherProductInfoConfig(category) : null;
+  const activeVoucherConfig = isVoucherCategory && isOfferSpecificVoucher ? voucherPiConfig : null;
   // EE: Date of the Event only when user chose "Events" on eephysical (bxi-dashboard parity)
-  const showDateOfEvent = voucherPiConfig?.extraVariantColumn === 'dateOfEvent' && (category !== 'eeVoucher' || (typeof localStorage !== 'undefined' && localStorage.getItem('eevoucherdata') === 'event'));
+  const showDateOfEvent = activeVoucherConfig?.extraVariantColumn === 'dateOfEvent' && (category !== 'eeVoucher' || (typeof localStorage !== 'undefined' && localStorage.getItem('eevoucherdata') === 'event'));
   const { prev: prevStepPath, next: nextStepPath } = getPrevNextStepPaths(category, 'productInfo', location?.pathname);
   const prevPath = prevStepPath || 'general-info';
   const nextPath = nextStepPath || 'tech-info';
 
   const effectiveSizeOptions = isVoucherCategory
-    ? (voucherPiConfig?.sizeOptions || [])
+    ? (activeVoucherConfig?.sizeOptions || [])
     : (piConfig.sizeOptions || []);
   const hasSizeOptions = effectiveSizeOptions.length > 0 && category !== 'restaurant';
+  console.log("effectiveSizeOptions", effectiveSizeOptions);
+  console.log("hasSizeOptions", hasSizeOptions);
 
   const hasHsn = piConfig.commonFields?.includes?.('hsn') ?? true;
   const showProductColor = !isVoucherCategory && piConfig.hasColorPicker && category !== 'restaurant';
   const hasSampleCheckbox = !isVoucherCategory;
   const hasGenderInProductInfo = isVoucherCategory
     ? (voucherPiConfig?.hasGender || false)
-    : ['textile', 'lifestyle', 'others'].includes(category);
+    : [ 'lifestyle', 'others'].includes(category);
   const hasFeatures = isVoucherCategory ? !!getFeatureEndpoint(category) : true;
   const hasOtherCosts = true;
   const hasLocationDetails = !isVoucherCategory;
@@ -1026,12 +1053,14 @@ export const ProductInfo = ({ category }) => {
   const handleAddVariation = () => {
     const d = getValues();
     const price = parseFloat(String(d.price || 0).replace(/,/g, '')) || 0;
-    const discountedPrice = parseFloat(String(d.discountedPrice || 0).replace(/,/g, '')) || price;
+    const discountedPrice = shouldUseDiscountedPrice
+      ? (parseFloat(String(d.discountedPrice || 0).replace(/,/g, '')) || 0)
+      : price;
     if (price <= 0) {
       toast.error('MRP is required and must be greater than 0');
       return;
     }
-    if (discountedPrice <= 0) {
+    if (shouldUseDiscountedPrice && discountedPrice <= 0) {
       toast.error('Discounted MRP is required and must be greater than 0');
       return;
     }
@@ -1076,7 +1105,7 @@ export const ProductInfo = ({ category }) => {
       productSize = d.selectedSize;
     }
     
-    if (discountedPrice > price) {
+    if (shouldUseDiscountedPrice && discountedPrice > price) {
       toast.error('Discounted MRP cannot be greater than MRP');
       return;
     }
@@ -1094,10 +1123,25 @@ export const ProductInfo = ({ category }) => {
       toast.error('Min Order Quantity cannot be greater than Max Order Quantity');
       return;
     }
-    const extraCol = voucherPiConfig?.extraVariantColumn;
+    const wantsSample = !!d.isSample;
+    const sampleQty = wantsSample ? parseInt(d.sampleAvailability, 10) : 0;
+    const samplePrice = wantsSample
+      ? parseFloat(String(d.priceOfSample || 0).replace(/,/g, ''))
+      : 0;
+    if (wantsSample) {
+      if (!Number.isFinite(sampleQty) || sampleQty <= 0) {
+        toast.error('Sample quantity must be greater than 0');
+        return;
+      }
+      if (!Number.isFinite(samplePrice) || samplePrice <= 0) {
+        toast.error('Sample price must be greater than 0');
+        return;
+      }
+    }
+    const extraCol = activeVoucherConfig?.extraVariantColumn;
     const variation = {
       PricePerUnit: price,
-      DiscountedPrice: discountedPrice,
+      ...(shouldUseDiscountedPrice ? { DiscountedPrice: discountedPrice } : {}),
       MinOrderQuantity: minQty,
       MaxOrderQuantity: maxQty,
       GST: String(d.gst || '18'),
@@ -1111,6 +1155,10 @@ export const ProductInfo = ({ category }) => {
       Weight: d.weight || '',
       MeasurementUnit: measurementUnit,
       TotalAvailableQty: parseInt(d.totalAvailableQty, 10) || 1,
+      ...(wantsSample && {
+        SampleQty: sampleQty,
+        SamplePrice: samplePrice,
+      }),
       ...(shoeSize && { ShoeSize: shoeSize }),
       ...(isVoucherCategory && {
         validityOfVoucherValue: d.validityOfVoucherValue ?? 12,
@@ -1148,6 +1196,12 @@ export const ProductInfo = ({ category }) => {
     setValue('flavor', '');
     setValue('offeringType', '');
     setValue('dateOfEvent', '');
+    // Keep size selection fixed once variants exist (BXI Frontend parity).
+    setValue('sizeUnit', 'cm');
+    setValue('shoeMeasurementUnit', 'US');
+    setValue('isSample', false);
+    setValue('sampleAvailability', '');
+    setValue('priceOfSample', '');
   };
 
   const handleEditVariation = (idx) => {
@@ -1156,7 +1210,7 @@ export const ProductInfo = ({ category }) => {
     setEditVariationIndex(idx);
 
     setValue('price', row.PricePerUnit ?? '');
-    setValue('discountedPrice', row.DiscountedPrice ?? '');
+    setValue('discountedPrice', shouldUseDiscountedPrice ? (row.DiscountedPrice ?? '') : '');
     setValue('gst', String(row.GST ?? '18'));
     setValue('hsn', row.HSN ?? '');
     setValue('minOrderQty', String(row.MinOrderQuantity ?? '1'));
@@ -1164,18 +1218,20 @@ export const ProductInfo = ({ category }) => {
     setValue('totalAvailableQty', String(row.TotalAvailableQty ?? '1'));
     setValue('productIdType', row.ProductIdType ?? '');
     setValue('productColor', row.ProductColor ?? '#ffffff');
+    setValue('isSample', !!(row.SampleQty || row.SamplePrice));
+    setValue('sampleAvailability', row.SampleQty ? String(row.SampleQty) : '');
+    setValue('priceOfSample', row.SamplePrice ? String(row.SamplePrice) : '');
 
     // Size/dimensions
     setValue('length', row.Length ?? '');
     setValue('width', row.Width ?? '');
     setValue('height', row.Height ?? '');
     setValue('weight', row.Weight ?? '');
+    const derivedSelectedSize = inferSelectedSizeFromVariation(row, effectiveSizeOptions) || row.ProductSize || '';
+    setValue('selectedSize', derivedSelectedSize);
     if (row.ShoeSize) {
-      setValue('selectedSize', 'Shoes');
       setValue('shoeSize', String(row.ShoeSize));
       setValue('shoeMeasurementUnit', row.MeasurementUnit || 'US');
-    } else {
-      setValue('selectedSize', row.ProductSize ?? '');
     }
 
     // Voucher fields
@@ -1183,9 +1239,9 @@ export const ProductInfo = ({ category }) => {
       setValue('validityOfVoucherValue', String(row.validityOfVoucherValue ?? '12'));
       setValue('validityOfVoucherUnit', row.validityOfVoucherUnit || 'Months');
     }
-    if (voucherPiConfig?.extraVariantColumn === 'flavor') setValue('flavor', row.Flavor ?? '');
-    if (voucherPiConfig?.extraVariantColumn === 'offeringType') setValue('offeringType', row.OfferingType ?? '');
-    if (voucherPiConfig?.extraVariantColumn === 'dateOfEvent') setValue('dateOfEvent', row.DateOfTheEvent ?? '');
+    if (activeVoucherConfig?.extraVariantColumn === 'flavor') setValue('flavor', row.Flavor ?? '');
+    if (activeVoucherConfig?.extraVariantColumn === 'offeringType') setValue('offeringType', row.OfferingType ?? '');
+    if (activeVoucherConfig?.extraVariantColumn === 'dateOfEvent') setValue('dateOfEvent', row.DateOfTheEvent ?? '');
   };
 
   const handleRemoveVariation = (idx) => {
@@ -1212,7 +1268,7 @@ export const ProductInfo = ({ category }) => {
       totalAvailableQty: '1',
       gst: '18',
       hsn: '',
-      selectedSize: isVoucherCategory ? '' : (piConfig.defaultSize || ''),
+      selectedSize: '',
       sizeValue: '',
       sizeUnit: 'cm',
       productForm: 'Dry',
@@ -1310,6 +1366,15 @@ export const ProductInfo = ({ category }) => {
   }, [id, category, setValue]);
 
   const selectedSize = watch('selectedSize');
+  const isDimensionSelectionLocked = hasSizeOptions && productsVariations.length > 0;
+
+  useEffect(() => {
+    // BXI Frontend parity: once one variant exists, keep the selected dimension fixed.
+    if (!isDimensionSelectionLocked || selectedSize) return;
+    const inferred = inferSelectedSizeFromVariation(productsVariations[0], effectiveSizeOptions);
+    if (inferred) setValue('selectedSize', inferred);
+  }, [isDimensionSelectionLocked, selectedSize, productsVariations, effectiveSizeOptions, setValue]);
+
   useEffect(() => {
     if (!selectedSize) return;
     const s = selectedSize.toLowerCase();
@@ -1507,10 +1572,15 @@ export const ProductInfo = ({ category }) => {
                       key={opt}
                       type="button"
                       variant="outline"
+                      disabled={isDimensionSelectionLocked}
                       className={cn(
-                        selectedSize === opt && 'border-[#C64091] bg-[#FCE7F3] text-[#C64091]'
+                        selectedSize === opt && 'border-[#C64091] bg-[#FCE7F3] text-[#C64091]',
+                        isDimensionSelectionLocked && 'opacity-50 cursor-not-allowed'
                       )}
-                      onClick={() => setValue('selectedSize', opt)}
+                      onClick={() => {
+                        if (isDimensionSelectionLocked) return;
+                        setValue('selectedSize', opt);
+                      }}
                     >
                       {opt === 'Length x Height' ? 'L x H' : opt === 'Length x Height x Width' ? 'L x H x W' : opt}
                     </Button>
@@ -1695,8 +1765,39 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
+            {/* Volume – for lifestyle, others, fmcg, restaurant, mobility */}
+            {hasSizeOptions && selectedSize === 'Volume' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Volume <span className="text-red-500">*</span></Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="e.g. 500"
+                      {...register('volume')}
+                      className="flex-1"
+                    />
+                    <Select
+                      value={watch('sizeUnit')}
+                      onValueChange={(v) => setValue('sizeUnit', v)}
+                    >
+                      <SelectTrigger className="w-24">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ml">ml</SelectItem>
+                        <SelectItem value="L">L</SelectItem>
+                        <SelectItem value="cl">cl</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Product Id + Color (same row) */}
-            {(piConfig.hasProductId && !isVoucherCategory) || (isVoucherCategory ? voucherPiConfig?.extraVariantColumn === 'color' : showProductColor) ? (
+            {(piConfig.hasProductId && !isVoucherCategory) || (isVoucherCategory ? activeVoucherConfig?.extraVariantColumn === 'color' : showProductColor) ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Product ID / SKU – when config hasProductId (not for vouchers) */}
                 {piConfig.hasProductId && !isVoucherCategory && (
@@ -1711,7 +1812,7 @@ export const ProductInfo = ({ category }) => {
                 )}
 
                 {/* Color picker – when config hasColorPicker (or voucher with color extra column) */}
-                {(isVoucherCategory ? voucherPiConfig?.extraVariantColumn === 'color' : showProductColor) && (
+                {(isVoucherCategory ? activeVoucherConfig?.extraVariantColumn === 'color' : showProductColor) && (
                   <div className={cn('space-y-2', !(piConfig.hasProductId && !isVoucherCategory) && 'md:col-span-2')}>
                     <Label>Color <span className="text-red-500">*</span></Label>
                     <div className="flex gap-3 items-center">
@@ -1790,45 +1891,14 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* Volume – for lifestyle, others, fmcg, restaurant, mobility */}
-            {hasSizeOptions && selectedSize === 'Volume' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Volume <span className="text-red-500">*</span></Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="e.g. 500"
-                      {...register('volume')}
-                      className="flex-1"
-                    />
-                    <Select
-                      value={watch('sizeUnit')}
-                      onValueChange={(v) => setValue('sizeUnit', v)}
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ml">ml</SelectItem>
-                        <SelectItem value="L">L</SelectItem>
-                        <SelectItem value="cl">cl</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* GST moved next to HSN above */}
 
-            {/* MRP & Discounted MRP */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Pricing */}
+            <div className={cn('grid grid-cols-1 gap-6', shouldUseDiscountedPrice && 'md:grid-cols-2')}>
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
                   <Label htmlFor="price">
-                    MRP <span className="text-red-500">*</span> (Incl of GST)
+                    {isVoucherCategory ? 'Price / Voucher' : 'MRP'} <span className="text-red-500">*</span> {isVoucherCategory ? '' : '(Incl of GST)'}
                   </Label>
                   <TooltipProvider>
                     <Tooltip>
@@ -1853,6 +1923,7 @@ export const ProductInfo = ({ category }) => {
                 />
               </div>
 
+              {shouldUseDiscountedPrice && (
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
                   <Label htmlFor="discountedPrice">Discounted MRP <span className="text-red-500">*</span></Label>
@@ -1877,6 +1948,7 @@ export const ProductInfo = ({ category }) => {
                   data-testid="input-discounted-price"
                 />
               </div>
+              )}
             </div>
 
             {/* Quantity */}
@@ -1929,18 +2001,34 @@ export const ProductInfo = ({ category }) => {
                         type="number"
                         placeholder="e.g. 5"
                         min={1}
-                        {...register('sampleAvailability')}
+                        {...register('sampleAvailability', {
+                          validate: (value) => {
+                            if (!watch('isSample')) return true;
+                            const qty = parseInt(value, 10);
+                            return Number.isFinite(qty) && qty > 0
+                              ? true
+                              : 'Sample quantity must be greater than 0';
+                          },
+                        })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="priceOfSample">Price of Sample (₹)</Label>
+                      <Label htmlFor="priceOfSample" className="flex items-center ">Price of Sample (<img src={bxitoken} alt="BXI Token" className="w-4 h-4" />)</Label>
                       <Input
                         id="priceOfSample"
                         type="number"
                         placeholder="e.g. 100"
-                        min={0}
+                        min={0.01}
                         step="0.01"
-                        {...register('priceOfSample')}
+                        {...register('priceOfSample', {
+                          validate: (value) => {
+                            if (!watch('isSample')) return true;
+                            const amount = parseFloat(String(value || '').replace(/,/g, ''));
+                            return Number.isFinite(amount) && amount > 0
+                              ? true
+                              : 'Sample price must be greater than 0';
+                          },
+                        })}
                       />
                     </div>
                   </div>
@@ -1977,7 +2065,7 @@ export const ProductInfo = ({ category }) => {
             )}
 
             {/* Voucher extra variant column: Flavor (FMCG) */}
-            {voucherPiConfig?.extraVariantColumn === 'flavor' && (
+            {activeVoucherConfig?.extraVariantColumn === 'flavor' && (
               <div className="space-y-2">
                 <Label htmlFor="flavor">Flavor</Label>
                 <Input id="flavor" placeholder="e.g. Chocolate" {...register('flavor')} />
@@ -1985,7 +2073,7 @@ export const ProductInfo = ({ category }) => {
             )}
 
             {/* Voucher extra variant column: Offering Type (QSR) */}
-            {voucherPiConfig?.extraVariantColumn === 'offeringType' && (
+            {activeVoucherConfig?.extraVariantColumn === 'offeringType' && (
               <div className="space-y-2">
                 <Label htmlFor="offeringType">Offering Type</Label>
                 <Input id="offeringType" placeholder="e.g. Single Room, Buffet" {...register('offeringType')} />
@@ -2065,20 +2153,22 @@ export const ProductInfo = ({ category }) => {
                     <thead className="bg-[#F9FAFB] text-[#374151]">
                       <tr>
                         {(!isVoucherCategory || hasSizeOptions) && <th className="px-3 py-2 text-center font-medium">Size</th>}
-                        {voucherPiConfig?.extraVariantColumn === 'color' && <th className="px-3 py-2 text-center font-medium">Color</th>}
-                        {voucherPiConfig?.extraVariantColumn === 'flavor' && <th className="px-3 py-2 text-center font-medium">Flavor</th>}
-                        {voucherPiConfig?.extraVariantColumn === 'offeringType' && <th className="px-3 py-2 text-center font-medium">Offering Type</th>}
+                        {activeVoucherConfig?.extraVariantColumn === 'color' && <th className="px-3 py-2 text-center font-medium">Color</th>}
+                        {activeVoucherConfig?.extraVariantColumn === 'flavor' && <th className="px-3 py-2 text-center font-medium">Flavor</th>}
+                        {activeVoucherConfig?.extraVariantColumn === 'offeringType' && <th className="px-3 py-2 text-center font-medium">Offering Type</th>}
                         {showDateOfEvent && <th className="px-3 py-2 text-center font-medium">Event Date</th>}
                         {showProductColor && <th className="px-3 py-2 text-center font-medium">Color</th>}
                         <th className="px-3 py-2 text-center font-medium">HSN</th>
                         <th className="px-3 py-2 text-center font-medium">GST</th>
-                        <th className="px-3 py-2 text-center font-medium">MRP</th>
-                        <th className="px-3 py-2 text-center font-medium">Disc. MRP</th>
+                        <th className="px-3 py-2 text-center font-medium">{isVoucherCategory ? 'Price / Voucher' : 'MRP'}</th>
+                        {shouldUseDiscountedPrice && <th className="px-3 py-2 text-center font-medium">Disc. MRP</th>}
                         {isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Qty</th>}
                         <th className="px-3 py-2 text-center font-medium">Min</th>
                         <th className="px-3 py-2 text-center font-medium">Max</th>
                         {isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Validity</th>}
                         {!isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Product ID</th>}
+                        {hasSampleCheckbox && <th className="px-3 py-2 text-center font-medium">Sample Price</th>}
+                        {hasSampleCheckbox && <th className="px-3 py-2 text-center font-medium">Sample Qty</th>}
                         <th className="px-3 py-2 text-center font-medium">Action</th>
                       </tr>
                     </thead>
@@ -2094,7 +2184,7 @@ export const ProductInfo = ({ category }) => {
                               {v.ShoeSize ? `${v.ShoeSize} (${v.MeasurementUnit || ''})` : v.ProductSize || '—'}
                             </td>
                           )}
-                          {voucherPiConfig?.extraVariantColumn === 'color' && (
+                          {activeVoucherConfig?.extraVariantColumn === 'color' && (
                             <td className="px-3 py-2">
                               {v.ProductColor ? (
                                 <div className="flex items-center justify-center gap-2">
@@ -2104,10 +2194,10 @@ export const ProductInfo = ({ category }) => {
                               ) : '—'}
                             </td>
                           )}
-                          {voucherPiConfig?.extraVariantColumn === 'flavor' && (
+                          {activeVoucherConfig?.extraVariantColumn === 'flavor' && (
                             <td className="px-3 py-2">{v.Flavor || '—'}</td>
                           )}
-                          {voucherPiConfig?.extraVariantColumn === 'offeringType' && (
+                          {activeVoucherConfig?.extraVariantColumn === 'offeringType' && (
                             <td className="px-3 py-2">{v.OfferingType || '—'}</td>
                           )}
                           {showDateOfEvent && (
@@ -2126,12 +2216,14 @@ export const ProductInfo = ({ category }) => {
                           <td className="px-3 py-2">{v.HSN || '—'}</td>
                           <td className="px-3 py-2">{v.GST ? `${v.GST}%` : '—'}</td>
                           <td className="px-3 py-2 font-medium">{v.PricePerUnit ? `${Number(v.PricePerUnit).toLocaleString()}` : '—'}</td>
-                          <td className="px-3 py-2 font-medium">{v.DiscountedPrice ? `${Number(v.DiscountedPrice).toLocaleString()}` : '—'}</td>
+                          {shouldUseDiscountedPrice && <td className="px-3 py-2 font-medium">{v.DiscountedPrice ? `${Number(v.DiscountedPrice).toLocaleString()}` : '—'}</td>}
                           {isVoucherCategory && <td className="px-3 py-2">{v.TotalAvailableQty ?? '—'}</td>}
                           <td className="px-3 py-2">{v.MinOrderQuantity ?? '—'}</td>
                           <td className="px-3 py-2">{v.MaxOrderQuantity ?? '—'}</td>
                           {isVoucherCategory && <td className="px-3 py-2">{v.validityOfVoucherValue ? `${v.validityOfVoucherValue} Mo` : '—'}</td>}
                           {!isVoucherCategory && <td className="px-3 py-2">{v.ProductIdType || '—'}</td>}
+                          {hasSampleCheckbox && <td className="px-3 py-2">{v.SamplePrice ? `${Number(v.SamplePrice).toLocaleString()}` : '—'}</td>}
+                          {hasSampleCheckbox && <td className="px-3 py-2">{v.SampleQty ? `${Number(v.SampleQty).toLocaleString()}` : '—'}</td>}
                           <td className="px-3 py-2 text-center">
                             <div className="inline-flex items-center gap-2">
                               <button
@@ -2337,7 +2429,7 @@ export const ProductInfo = ({ category }) => {
 
             
             {/* Manufacturing & Expiry Dates – for electronics, fmcg, officesupply, mobility, restaurant, others */}
-            {hasManufacturingDates && ['electronics', 'fmcg', 'officesupply', 'mobility', 'restaurant', 'others'].includes(category) && (
+            {hasManufacturingDates && ['electronics', 'fmcg', 'officesupply', 'mobility', 'restaurant', 'others', 'lifestyle'].includes(category) && (
               <div className="space-y-4 pt-4">
                 <h3 className="text-base font-semibold text-[#111827]">Product Dates</h3>
                 
@@ -2345,7 +2437,7 @@ export const ProductInfo = ({ category }) => {
                   {/* Manufacturing Date */}
                   <div className="space-y-2">
                     <Label>
-                      Manufacturing Date{' '}
+                      Manufacturing Date{' '} <span className="text-red-500">*</span>
                       {currentDateReqs.manufacturing === 'mandatory' && <span className="text-red-500">*</span>}
                     </Label>
                     <Popover>
@@ -3065,7 +3157,7 @@ export const TechInfo = ({ category }) => {
 
             {/* Tags (min 1) */}
             <div className="space-y-3 pt-4 border-t border-[#E5E8EB]">
-              <Label>Tags (min 1) <span className="text-red-500">*</span></Label>
+              <Label>Tags <span className="text-red-500">*</span></Label>
               <div className="flex gap-2">
                 <Input
                   value={currentTag}
@@ -3103,10 +3195,18 @@ export const TechInfo = ({ category }) => {
               )}
               <div className="flex flex-wrap gap-2">
                 {tags.map((t) => (
-                  <span key={t} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#F3F4F6] text-sm text-[#6B7A99]">
+                  <span
+                    key={t}
+                    className="inline-flex items-center px-3 py-1 rounded-full 
+                              bg-[#FCE7F3] text-[#C64091] text-sm font-medium"
+                  >
                     {t}
-                    <button type="button" onClick={() => setTags((p) => p.filter((x) => x !== t))} className="text-red-500 hover:text-red-700">
-                      <X className="w-3 h-3" />
+                    <button
+                      type="button"
+                      onClick={() => setTags((p) => p.filter((x) => x !== t))}
+                      className="ml-2 text-red-500 hover:text-red-700"
+                    >
+                      <X className="w-4 h-4" />
                     </button>
                   </span>
                 ))}

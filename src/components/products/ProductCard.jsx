@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { cn } from '../../lib/utils';
 import { resolveSellerHubRoute } from '../../utils/sellerHubNavigation';
+import bxitoken from '../../assets/bxi-token.svg'; 
 
 const statusConfig = {
   'Approved': { label: 'Live', className: 'live', color: 'bg-emerald-100 text-emerald-700' },
@@ -36,6 +37,7 @@ export const ProductCard = ({
     ProductUploadStatus,
     ListingType,
     ProductCategoryName,
+    ProductType,
     ProductImages,
     VoucherImages,
     ProductsVariantions,
@@ -114,12 +116,13 @@ export const ProductCard = ({
         </h3>
         
         <p className="product-card-category">
-          {ProductCategoryName || ListingType || 'Uncategorized'}
+          {ProductCategoryName || ProductType || ListingType || 'Uncategorized'}
         </p>
 
         {price && (
-          <p className="product-card-price">
-            ₹{price.toLocaleString('en-IN')}
+          <p className="product-card-price flex items-center">
+            <img src={bxitoken} alt="BXI Token" className="w-5 h-5 mr-1" />
+            {price.toLocaleString('en-IN')}
           </p>
         )}
 

@@ -8,6 +8,7 @@ import { Button } from "../components/ui/button";
 import { ArrowLeft, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
+import { getVoucherJourneyType, getVoucherJourneyLabel } from "../utils/voucherType";
 
 const DIGITAL_OPTIONS = [
   {
@@ -46,7 +47,9 @@ export default function EePhysical() {
       return;
     }
     if (typeof localStorage !== "undefined") {
-      localStorage.setItem("digitalData", digitalData.name ?? "Offer Specific");
+      const voucherJourneyType = getVoucherJourneyType(digitalData?.name ?? "Offer Specific");
+      localStorage.setItem("digitalDataType", voucherJourneyType);
+      localStorage.setItem("digitalData", getVoucherJourneyLabel(voucherJourneyType));
       localStorage.setItem("companyType", "Entertainment & Events");
     }
     navigate("/eeVoucher/generalinformation");
