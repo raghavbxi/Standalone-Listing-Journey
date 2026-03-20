@@ -858,7 +858,7 @@ export const ProductInfo = ({ category }) => {
   const hasSampleCheckbox = !isVoucherCategory;
   const hasGenderInProductInfo = isVoucherCategory
     ? (voucherPiConfig?.hasGender || false)
-    : [ 'lifestyle', 'others'].includes(category);
+    : [ 'lifestyle', 'others', 'lifestyleVoucher'].includes(category);
   const hasFeatures = isVoucherCategory ? !!getFeatureEndpoint(category) : true;
   const hasOtherCosts = true;
   const hasLocationDetails = !isVoucherCategory;

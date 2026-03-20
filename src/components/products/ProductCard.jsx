@@ -144,7 +144,7 @@ export const ProductCard = ({
               View
             </Button>
             
-            {tabType !== 'Delist' && (
+            {tabType !== 'Delist' && tabType !== 'Live' && (
               <Button
                 variant="outline"
                 size="sm"

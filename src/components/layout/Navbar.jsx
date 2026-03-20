@@ -4,9 +4,10 @@ import { useAuthUser } from "../../hooks/useAuthUser";
 import BXI_logo from "../../assets/BXI Listing LOGO.svg";
 import GoBackIcon from "../../assets/navbarBackIcon.svg";
 import Goback from "../../assets/Goback.svg";
+import { isAdmin } from "../../hooks/useAuthUser";
 
 export default function TopNavbar() {
-  const { user, companyAvatar } = useAuthUser();
+  const { user, companyAvatar, isAdmin } = useAuthUser();
 
   return (
     <nav className="w-full bg-[#f3f4f6] border-b border-gray-200 px-6 py-2">

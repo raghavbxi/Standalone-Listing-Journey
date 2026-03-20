@@ -151,11 +151,11 @@ export const GENERAL_INFO_CONFIG = {
     fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
   },
   lifestyle: {
-    hasGenderSelection: false,
+    hasGenderSelection: true,
     hasSubtitle: true,
     hasRadioButtons: false,
     hasStarRating: false,
-    fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
+    fields: ['gender', 'subcategory', 'productname', 'productsubtitle', 'productdescription'],
   },
   mediaonline: {
     hasGenderSelection: false,
@@ -230,11 +230,11 @@ export const GENERAL_INFO_CONFIG = {
     fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
   },
   lifestyleVoucher: {
-    hasGenderSelection: false,
+    hasGenderSelection: true,
     hasSubtitle: true,
     hasRadioButtons: false,
     hasStarRating: false,
-    fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
+    fields: ['gender', 'subcategory', 'productname', 'productsubtitle', 'productdescription'],
   },
   qsrVoucher: {
     hasGenderSelection: false,
