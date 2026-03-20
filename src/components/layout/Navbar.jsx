@@ -40,7 +40,7 @@ export default function TopNavbar() {
       )}
 
       <button
-        onClick={() => (window.location.href = "http://localhost:3000/home")}
+        onClick={() => isAdmin ? (window.location.href = "http://localhost:3000/admindashboard/userdashboard") : (window.location.href = "http://localhost:3000/home")}
         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#C64091] border border-[#C64091] border-2 rounded-md hover:bg-[#C64091] hover:text-white transition"
       >
         <img src={Goback}

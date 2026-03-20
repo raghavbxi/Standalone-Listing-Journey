@@ -3013,7 +3013,8 @@ export const TechInfo = ({ category }) => {
     try {
       const payload = {
         _id: id,
-        ProductUploadStatus: 'golive',
+        // Save the last completed step as "Technical Information" so "Edit" routes correctly.
+        ProductUploadStatus: 'technicalinformation',
         WarrantyPeriod: data.warrantyPeriod,
         GuaranteePeriod: data.guaranteePeriod,
         WeightBeforePackingPerUnitMeasurUnit: data.weightUnit,
@@ -3024,6 +3025,8 @@ export const TechInfo = ({ category }) => {
           PackagingAndDeliveryInstructionsIfAny: data.packagingInstructions,
           InstructionsToUseProduct: data.usageInstructions,
           Tags: tags,
+          // Nested status aligns with BXI Frontend's TechInfo submit payload.
+          ProductUploadStatus: 'golive',
         },
       };
       await productApi.updateProduct(payload);

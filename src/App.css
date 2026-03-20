@@ -35,12 +35,33 @@
 .admin-filter {
   position: absolute;
   right: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .admin-filter select {
   padding: 6px 10px;
   border-radius: 6px;
   border: 1px solid #ccc;
+}
+
+.admin-filter-select {
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .section-header {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .admin-filter {
+    position: static;
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* Sidebar */

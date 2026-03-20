@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Plus, Package, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import { ProductCard } from '../components/products/ProductCard';
 import { TabCard } from '../components/products/TabCard';
 import { DeleteDialog } from '../components/products/DeleteDialog';
@@ -368,34 +375,62 @@ export default function SellerHub() {
 
         {showAdminView && (
           <div className="admin-filter">
-            <select
-              value={selectedType}
-              onChange={(e) => {
-                setSelectedType(e.target.value);
-                setSelectedListingType('');
-              }}
-              data-testid="sellerhub-category-filter"
-            >
-              <option value="">All Categories</option>
-              {CATEGORY_FILTER_OPTIONS.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-            <select
-              value={selectedListingType}
-              onChange={(e) => setSelectedListingType(e.target.value)}
-              data-testid="sellerhub-listing-type-filter"
-              disabled={!selectedType}
-            >
-              <option value="">{selectedType ? 'All Types' : 'Select Category First'}</option>
-              {LISTING_TYPE_FILTER_OPTIONS.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+            <div className="admin-filter-select w-[220px]">
+              <Select
+                value={selectedType || undefined}
+                onValueChange={(value) => {
+                  // Radix Select doesn't allow empty-string SelectItem values.
+                  // Map our "All Categories" sentinel back to empty string state.
+                  setSelectedType(value === '__all__' ? '' : value);
+                  setSelectedListingType('');
+                }}
+              >
+                <SelectTrigger
+                  data-testid="sellerhub-category-filter"
+                  aria-label="Category filter"
+                  className="bg-white"
+                >
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Categories</SelectItem>
+                  {CATEGORY_FILTER_OPTIONS.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="admin-filter-select w-[260px]">
+              <Select
+                value={selectedListingType || undefined}
+                onValueChange={(value) => {
+                  // Allow clearing back to "All Types"
+                  setSelectedListingType(value === '__all_types__' ? '' : value);
+                }}
+              >
+                <SelectTrigger
+                  data-testid="sellerhub-listing-type-filter"
+                  aria-label="Listing type filter"
+                  disabled={!selectedType}
+                  className="bg-white"
+                >
+                  <SelectValue
+                    placeholder={selectedType ? 'All Types' : 'Select Category First'}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all_types__">All Types</SelectItem>
+                  {LISTING_TYPE_FILTER_OPTIONS.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         )}
       </div>
