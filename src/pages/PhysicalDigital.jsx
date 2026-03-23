@@ -11,6 +11,7 @@ import { cn } from "../lib/utils";
 import { useAuthUser } from "../hooks/useAuthUser";
 import useListingEntryContext from "../hooks/useListingEntryContext";
 import { getAllowedCategories, getAllowedVouchers } from "../config/categories";
+import { getVoucherJourneyType, getVoucherJourneyLabel } from "../utils/voucherType";
 
 const PHYSICAL_OPTIONS = [
   {
@@ -126,7 +127,9 @@ export default function PhysicalDigital() {
       if (path) {
         // Match bxi-dashboard: store voucher type and company for general-info and downstream steps
         if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('digitalData', digitalData?.name ?? 'Offer Specific');
+          const voucherJourneyType = getVoucherJourneyType(digitalData?.name ?? 'Offer Specific');
+          localStorage.setItem('digitalDataType', voucherJourneyType);
+          localStorage.setItem('digitalData', getVoucherJourneyLabel(voucherJourneyType));
           localStorage.setItem('companyType', effectiveCompanyType ?? '');
         }
         navigate(path);

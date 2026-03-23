@@ -257,7 +257,11 @@ export default function VoucherTechInfo({ category }) {
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
       <div className="form-container">
-        <Stepper currentStep={3} completedSteps={[1, 2]} />
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={3} completedSteps={[1, 2]} />
+          </aside>
+          <main className="stepper-content">
         <div className="form-section">
           <div className="flex items-center gap-2">
           <h2 className="form-section-title">Voucher Information - {category}</h2>
@@ -578,6 +582,8 @@ export default function VoucherTechInfo({ category }) {
               </Button>
             </div>
           </form>
+        </div>
+          </main>
         </div>
       </div>
     </div>

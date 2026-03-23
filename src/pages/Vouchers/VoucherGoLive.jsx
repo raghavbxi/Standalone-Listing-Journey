@@ -75,8 +75,12 @@ export default function VoucherGoLive({ category }) {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
-      <div className="form-container max-w-6xl mx-auto px-4">
-        <Stepper currentStep={4} completedSteps={[1, 2, 3]} />
+      <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={4} completedSteps={[1, 2, 3]} />
+          </aside>
+          <main className="stepper-content">
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-2xl font-bold text-[#111827] mb-2">Review & Go Live</h2>
           <p className="text-sm text-[#6B7A99]">
@@ -462,6 +466,8 @@ export default function VoucherGoLive({ category }) {
               </Button>
             </div>
           </div>
+        </div>
+          </main>
         </div>
       </div>
     </div>

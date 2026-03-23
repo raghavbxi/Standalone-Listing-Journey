@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import api, { productApi } from '../../utils/api';
 import { Stepper } from '../AddProduct/AddProductSteps';
+import { getVoucherJourneyTypeFromStorage, VOUCHER_JOURNEY_TYPE } from '../../utils/voucherType';
 
 const VALIDITY_OPTIONS = Array.from({ length: 18 }, (_, i) => {
   const n = i + 1;
@@ -28,7 +29,7 @@ const OTHER_COST_APPLICABLE = [
   { value: 'PerUnit', label: 'Per Unit' },
 ];
 
-const isOfferSpecific = () => typeof localStorage !== 'undefined' && localStorage.getItem('digitalData') === 'Offer Specific';
+const isOfferSpecific = () => getVoucherJourneyTypeFromStorage() === VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC;
 
 // Validation helpers (aligned with bxi-dashboard SizeChartTemplate & OthercostsTemplate)
 const HSN_VALID = /^\d{4}$|^\d{6}$|^\d{8}$/;
@@ -442,7 +443,11 @@ export default function HotelsProductInfo({ category }) {
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
       <div className="form-container">
-        <Stepper currentStep={2} completedSteps={[1]} />
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={2} completedSteps={[1]} />
+          </aside>
+          <main className="stepper-content">
         <div className="form-section bg-white rounded-lg shadow-sm p-6">
           <h2 className="form-section-title text-xl font-semibold text-[#111827] mb-1">Voucher Information</h2>
           <p className="text-sm text-[#6B7A99] mb-6">
@@ -909,6 +914,8 @@ export default function HotelsProductInfo({ category }) {
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
+        </div>
+          </main>
         </div>
       </div>
     </div>

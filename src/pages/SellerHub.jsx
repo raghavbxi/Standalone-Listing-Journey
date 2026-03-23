@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Plus, Package, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import { ProductCard } from '../components/products/ProductCard';
 import { TabCard } from '../components/products/TabCard';
 import { DeleteDialog } from '../components/products/DeleteDialog';
@@ -31,8 +38,23 @@ import {
 import { useAuthUser } from '../hooks/useAuthUser';
 import useListingEntryContext from '../hooks/useListingEntryContext';
 import { getAllowedCategories, getAllowedVouchers } from '../config/categories';
+import { PRODUCT_TYPE_BY_CATEGORY } from '../config/categoryFormConfig';
 
 const TABS = ['Live', 'In Draft', 'Admin Review', 'Delist', 'Rejected', 'All'];
+const CATEGORY_FILTER_OPTIONS = Array.from(
+  new Set(Object.values(PRODUCT_TYPE_BY_CATEGORY))
+).sort((a, b) => a.localeCompare(b));
+const LISTING_TYPE_FILTER_OPTIONS = ['Product', 'Voucher', 'Media Online', 'Media Offline'];
+const CATEGORY_FILTER_ALIASES = {
+  'QSR': ['qsr', 'restaurant', 'restaurant / qsr'],
+  'Office Supply': ['office supply', 'officesupply'],
+  'Entertainment & Events': ['entertainment & events', 'entertainment and events', 'ee'],
+  'Airline Tickets': ['airline tickets', 'airlines tickets', 'airline'],
+  'Hotel': ['hotel', 'hotels'],
+};
+
+const normalizeCategory = (value = '') =>
+  String(value).toLowerCase().replace(/[^a-z0-9&]+/g, ' ').trim();
 
 export default function SellerHub() {
   const navigate = useNavigate();
@@ -51,6 +73,8 @@ export default function SellerHub() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedType, setSelectedType] = useState('');
+  const [selectedListingType, setSelectedListingType] = useState('');
 
   // Redux state
   const {
@@ -84,47 +108,52 @@ export default function SellerHub() {
     : 'Add Voucher';
   const listingTypeLabel = isMedia ? 'media listings' : (hasVoucherAccess && !hasProductAccess ? 'voucher listings' : 'product listings');
 
-  // Fetch all products on mount and refresh
+  const fetchAllTabsData = (type = '') => {
+    dispatch(fetchLiveProducts({ page: 1, type }));
+    dispatch(fetchDraftProducts({ page: 1, type }));
+    dispatch(fetchAllProducts({ page: 1, type }));
+    dispatch(fetchRejectedProducts({ page: 1, type }));
+    dispatch(fetchDelistProducts({ page: 1, type }));
+    dispatch(fetchPendingProducts({ page: 1, type }));
+  };
+
+  // Fetch all products on mount, refresh, and filter change
   useEffect(() => {
     if (authLoading || !isAuthenticated) {
       return;
     }
-    dispatch(fetchLiveProducts({ page: 1 }));
-    dispatch(fetchDraftProducts({ page: 1 }));
-    dispatch(fetchAllProducts({ page: 1 }));
-    dispatch(fetchRejectedProducts({ page: 1 }));
-    dispatch(fetchDelistProducts({ page: 1 }));
-    dispatch(fetchPendingProducts({ page: 1 }));
-  }, [dispatch, refreshTrigger, authLoading, isAuthenticated]);
+    fetchAllTabsData(selectedType);
+    setCurrentPage(1);
+  }, [dispatch, refreshTrigger, authLoading, isAuthenticated, selectedType]);
 
   // Fetch current tab data when page changes
   useEffect(() => {
     if (authLoading || !isAuthenticated) {
       return;
     }
-    fetchCurrentTabData(currentPage);
+    fetchCurrentTabData(currentPage, selectedType);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, activeTab, authLoading, isAuthenticated]);
+  }, [currentPage, activeTab, authLoading, isAuthenticated, selectedType]);
 
-  const fetchCurrentTabData = (page) => {
+  const fetchCurrentTabData = (page, type = '') => {
     switch (activeTab) {
       case 'Live':
-        dispatch(fetchLiveProducts({ page }));
+        dispatch(fetchLiveProducts({ page, type }));
         break;
       case 'In Draft':
-        dispatch(fetchDraftProducts({ page }));
+        dispatch(fetchDraftProducts({ page, type }));
         break;
       case 'Admin Review':
-        dispatch(fetchPendingProducts({ page }));
+        dispatch(fetchPendingProducts({ page, type }));
         break;
       case 'Delist':
-        dispatch(fetchDelistProducts({ page }));
+        dispatch(fetchDelistProducts({ page, type }));
         break;
       case 'Rejected':
-        dispatch(fetchRejectedProducts({ page }));
+        dispatch(fetchRejectedProducts({ page, type }));
         break;
       case 'All':
-        dispatch(fetchAllProducts({ page }));
+        dispatch(fetchAllProducts({ page, type }));
         break;
       default:
         break;
@@ -153,6 +182,53 @@ export default function SellerHub() {
 
   const currentTabData = getCurrentTabData();
   const { data: products, totalProducts, totalPages, loading } = currentTabData;
+  const filteredProducts = useMemo(() => {
+    if (!selectedType) return products || [];
+
+    const selectedNorm = normalizeCategory(selectedType);
+    const aliasPool = new Set([
+      selectedNorm,
+      ...(CATEGORY_FILTER_ALIASES[selectedType] || []).map((a) => normalizeCategory(a)),
+    ]);
+
+    return (products || []).filter((product) => {
+      const categoryCandidates = [
+        product?.ProductCategoryName,
+        product?.ProductType,
+        product?.Type,
+      ]
+        .map((v) => normalizeCategory(v))
+        .filter(Boolean);
+
+      return categoryCandidates.some((candidate) =>
+        [...aliasPool].some((alias) => candidate === alias || candidate.includes(alias) || alias.includes(candidate))
+      );
+    });
+  }, [products, selectedType]);
+  const fullyFilteredProducts = useMemo(() => {
+    if (!selectedListingType) return filteredProducts;
+
+    return filteredProducts.filter((product) => {
+      const listingTypeNorm = normalizeCategory(product?.ListingType);
+      const categoryNorm = normalizeCategory(product?.ProductCategoryName);
+      const isMediaOnline = categoryNorm.includes('media online') || categoryNorm.includes('mediaonline');
+      const isMediaOffline = categoryNorm.includes('media offline') || categoryNorm.includes('mediaoffline');
+      const isVoucher = listingTypeNorm === 'voucher' || categoryNorm.includes('voucher');
+
+      switch (selectedListingType) {
+        case 'Product':
+          return !isVoucher && !isMediaOnline && !isMediaOffline;
+        case 'Voucher':
+          return isVoucher;
+        case 'Media Online':
+          return isMediaOnline;
+        case 'Media Offline':
+          return isMediaOffline;
+        default:
+          return true;
+      }
+    });
+  }, [filteredProducts, selectedListingType]);
 
   // Tab counts
   const tabCounts = useMemo(() => ({
@@ -197,7 +273,7 @@ export default function SellerHub() {
       setDeleteDialogOpen(false);
       setProductToDelete(null);
       dispatch(triggerRefresh());
-      fetchCurrentTabData(currentPage);
+      fetchCurrentTabData(currentPage, selectedType);
     } catch (error) {
       toast.error(error || 'Failed to delete product');
     } finally {
@@ -214,7 +290,7 @@ export default function SellerHub() {
       })).unwrap();
       toast.success('Product relisted successfully');
       dispatch(triggerRefresh());
-      fetchCurrentTabData(currentPage);
+      fetchCurrentTabData(currentPage, selectedType);
     } catch (error) {
       toast.error(error || 'Failed to relist product');
     }
@@ -299,11 +375,62 @@ export default function SellerHub() {
 
         {showAdminView && (
           <div className="admin-filter">
-            <select>
-              <option value="">Filter</option>
-              <option value="1">Option 1</option>
-              <option value="2">Option 2</option>
-            </select>
+            <div className="admin-filter-select w-[220px]">
+              <Select
+                value={selectedType || undefined}
+                onValueChange={(value) => {
+                  // Radix Select doesn't allow empty-string SelectItem values.
+                  // Map our "All Categories" sentinel back to empty string state.
+                  setSelectedType(value === '__all__' ? '' : value);
+                  setSelectedListingType('');
+                }}
+              >
+                <SelectTrigger
+                  data-testid="sellerhub-category-filter"
+                  aria-label="Category filter"
+                  className="bg-white"
+                >
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Categories</SelectItem>
+                  {CATEGORY_FILTER_OPTIONS.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="admin-filter-select w-[260px]">
+              <Select
+                value={selectedListingType || undefined}
+                onValueChange={(value) => {
+                  // Allow clearing back to "All Types"
+                  setSelectedListingType(value === '__all_types__' ? '' : value);
+                }}
+              >
+                <SelectTrigger
+                  data-testid="sellerhub-listing-type-filter"
+                  aria-label="Listing type filter"
+                  disabled={!selectedType}
+                  className="bg-white"
+                >
+                  <SelectValue
+                    placeholder={selectedType ? 'All Types' : 'Select Category First'}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all_types__">All Types</SelectItem>
+                  {LISTING_TYPE_FILTER_OPTIONS.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         )}
       </div>
@@ -313,10 +440,10 @@ export default function SellerHub() {
         <div className="loading-container">
           <Loader2 className="w-10 h-10 animate-spin text-[#C64091]" />
         </div>
-      ) : products && products.length > 0 ? (
+      ) : fullyFilteredProducts && fullyFilteredProducts.length > 0 ? (
         <>
           <div className="product-grid" data-testid="product-grid">
-            {products.map((product) => (
+            {fullyFilteredProducts.map((product) => (
               <ProductCard
                 key={product._id}
                 product={product}

@@ -28,6 +28,7 @@ import {
 import { productApi, keyFeatureApi } from '../utils/api';
 import { toast } from 'sonner';
 import BXIIcon from '../assets/BXI_COIN.png';
+import BXITokenIcon from '../assets/bxi-token.svg';
 
 const defaultImage =
   'https://images.unsplash.com/photo-1612538498488-226257115cc4?w=400&h=400&fit=crop';
@@ -756,8 +757,13 @@ export default function ProductPreview() {
                               </Typography>
                               <Typography variant="body2" color="text.secondary">
                                 <Typography component="span" color="text.disabled">Cost:</Typography>{' '}
-                                <Typography component="span" fontWeight="medium">
-                                  {formatPrice(cost.CostPrice)} {cost.currencyType === 'BXITokens' ? 'BXI' : '₹'}
+                                <Typography component="span" className="inline-flex items-center gap-1" fontWeight="medium">
+                                  {formatPrice(cost.CostPrice)}
+                                  {cost.currencyType === 'BXITokens' ? (
+                                    <img src={BXITokenIcon} alt="BXI Token" className="w-4 h-4" />
+                                  ) : (
+                                    ' ₹'
+                                  )}
                                 </Typography>
                               </Typography>
                             </Stack>
@@ -822,10 +828,10 @@ export default function ProductPreview() {
                           <Typography fontWeight="500">{ti.Warranty}</Typography>
                         </Grid>
                       )}
-                      {ti?.GuaranteePeriod && (
+                      {ti?.Guarantee && (
                         <Grid item xs={12} sm={6}>
                           <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Guarantee Period</Typography>
-                          <Typography fontWeight="500">{ti.GuaranteePeriod}</Typography>
+                          <Typography fontWeight="500">{ti.Guarantee}</Typography>
                         </Grid>
                       )}
                     </Grid>
@@ -871,52 +877,51 @@ export default function ProductPreview() {
                         </Box>
                       </Stack>
                     )}
-                    {ti?.PackagingDetails && (
+                    {ti?.InstructionsToUseProduct && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Packaging Details</Typography>
-                        <Typography variant="body1" color="text.secondary">{ti.PackagingDetails}</Typography>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Instructions to Use Product</Typography>
+                        <Typography variant="body1" color="text.secondary">
+                          {ti.InstructionsToUseProduct}
+                        </Typography>
                       </Box>
                     )}
-                    {ti?.GuaranteeDetails && (
+                    {ti?.PackagingAndDeliveryInstructionsIfAny && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Guarantee Details</Typography>
-                        <Typography variant="body1" color="text.secondary">{ti.GuaranteeDetails}</Typography>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Packaging and Delivery Instructions</Typography>
+                        <Typography variant="body1" color="text.secondary">
+                          {ti.PackagingAndDeliveryInstructionsIfAny}
+                        </Typography>
                       </Box>
                     )}
-                    {ti?.PackagingType && (
+                    {ti.Tags && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Packaging Type</Typography>
-                        <Typography variant="body1" color="text.secondary">{ti.PackagingType}</Typography>
-                      </Box>
-                    )}
-                    {ti?.UsageInstructions && (
-                      <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Instructions to use product</Typography>
-                        <Typography variant="body1" color="text.secondary">{ti.UsageInstructions}</Typography>
-                      </Box>
-                    )}
-                    {ti?.CareInstructions && (
-                      <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Care Instructions</Typography>
-                        <Typography variant="body1" color="text.secondary">{ti.CareInstructions}</Typography>
-                      </Box>
-                    )}
-                    {ti?.SafetyWarnings && (
-                      <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Safety Warnings</Typography>
-                        <Typography variant="body1" color="text.secondary">{ti.SafetyWarnings}</Typography>
-                      </Box>
-                    )}
-                    {ti?.Certifications && (
-                      <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Certifications</Typography>
-                        <Typography variant="body1" color="text.secondary">{ti.Certifications}</Typography>
-                      </Box>
-                    )}
-                    {ti?.LegalCompliance && (
-                      <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Legal Information</Typography>
-                        <Typography variant="body1" color="text.secondary">{ti.LegalCompliance}</Typography>
+                        <Typography
+                          variant="body2"
+                          fontWeight="600"
+                          color="#1E40AF"
+                          sx={{ mb: 1 }}
+                        >
+                          Tags
+                        </Typography>
+
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                          {ti.Tags.map((tag) => (
+                            <Box
+                              key={tag}
+                              sx={{
+                                px: 1.5,
+                                py: 0.5,
+                                borderRadius: "999px",
+                                backgroundColor: "#FCE7F3",
+                                color: "#C64091",
+                                fontSize: "0.8rem",
+                                fontWeight: 500,
+                              }}
+                            >
+                              {tag}
+                            </Box>
+                          ))}
+                        </Box>
                       </Box>
                     )}
                   </Stack>

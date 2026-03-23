@@ -2,6 +2,7 @@
  * Resolves the route path for Edit or View actions from Seller Hub
  * Based on product type, company type, listing type, and action
  */
+import { getVoucherJourneyType, VOUCHER_JOURNEY_TYPE } from './voucherType';
 
 // Category route mappings for products
 const categoryRoutes = {
@@ -137,18 +138,32 @@ const resolveViewRoute = ({ product, companyType, listingType, productCategory, 
 
   // Handle Voucher listing type
   if (listingType === 'Voucher') {
-    const voucherType = product?.VoucherType;
-    if (voucherType?.includes('Value Voucher') || voucherType?.includes('Gift Card')) {
+    const voucherType = getVoucherJourneyType(product?.VoucherType);
+    if (voucherType === VOUCHER_JOURNEY_TYPE.VALUE_GIFT) {
       return `/valueandgiftvoucher/${productId}`;
     }
-    if (voucherType?.includes('Offer Specific')) {
+    if (voucherType === VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC) {
       return `/spacificvoucher/${productId}`;
     }
     return `/allvoucherpreview/${productId}`;
   }
 
   // Handle Product listing type
-  const previewRoute = previewRoutes[companyType] || '/allproductpreview';
+  const normalizeKeyForCategoryCompare = (key) => {
+    if (!key) return '';
+    return String(key).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  };
+
+  const categoryCandidate = productCategory || product?.ProductType || product?.Type || companyType;
+  const previewRouteFromExact =
+    previewRoutes[categoryCandidate] || previewRoutes[productCategory] || previewRoutes[companyType];
+
+  const normalizedCategoryCandidate = normalizeKeyForCategoryCompare(categoryCandidate);
+  const previewRouteFromFuzzy = !previewRouteFromExact && normalizedCategoryCandidate
+    ? Object.keys(previewRoutes).find((k) => normalizeKeyForCategoryCompare(k) === normalizedCategoryCandidate)
+    : null;
+
+  const previewRoute = previewRouteFromExact || (previewRouteFromFuzzy ? previewRoutes[previewRouteFromFuzzy] : null) || '/allproductpreview';
   return `${previewRoute}/${productId}`;
 };
 
@@ -168,11 +183,22 @@ const resolveEditRoute = ({
   reviewReasonNavigation,
   isBulkUpload 
 }) => {
-  // Step: prefer reviewReasonNavigation (e.g. from admin), fallback to ProductUploadStatus (draft / where user left off)
-  const stepKey = reviewReasonNavigation || product?.ProductUploadStatus;
-  const step = stepKey
-    ? (stepMappings[stepKey] || stepMappings[stepKey.toLowerCase?.()] || '/general-info')
-    : '/general-info';
+  const normalizeReviewKey = (key) => {
+    if (!key) return '';
+    return String(key)
+      .trim()
+      .toLowerCase()
+      .replace(/[\s_-]+/g, '') // remove spaces/underscores/hyphens
+      .replace(/[^\w]/g, ''); // remove any other unexpected chars
+  };
+
+  const normalizedReviewKey = normalizeReviewKey(reviewReasonNavigation);
+  const normalizedProductUploadStatus = normalizeReviewKey(product?.ProductUploadStatus);
+  const normalizedProductTechUploadStatus = normalizeReviewKey(product?.ProductTechInfo?.ProductUploadStatus);
+
+  // Determine step from reviewReasonNavigation
+  const stepSourceKey = normalizedReviewKey || normalizedProductUploadStatus || normalizedProductTechUploadStatus;
+  const step = stepSourceKey ? stepMappings[stepSourceKey] || '/general-info' : '/general-info';
 
   // Handle bulk upload products
   if (isBulkUpload) {
@@ -181,7 +207,7 @@ const resolveEditRoute = ({
 
   // Handle Media company type (multiplex, digital, hoarding have specific step routes)
   if (companyType === 'Media') {
-    const reviewKey = (reviewReasonNavigation || product?.ProductUploadStatus || 'productinformation').toLowerCase();
+    const reviewKey = normalizedReviewKey || 'productinformation';
     if (productCategory === 'Multiplex ADs') {
       if (productSubCategory === 'Digital ADs') {
         const digitalSteps = { generalinformation: 'general-info', productinformation: 'mediaonlinedigitalscreensinfo', technicalinformation: 'mediaonlinedigitalscreenstechinfo', golive: 'digitalscreensgolive' };
@@ -210,7 +236,7 @@ const resolveEditRoute = ({
     if (voucherRoute) {
       // Hotel voucher uses different step names (hotelsproductinfo, hotelstechinfo, hotelsgolive)
       const isHotel = companyType === 'Hotel' || companyType === 'Hotels';
-      const reviewKey = (reviewReasonNavigation || product?.ProductUploadStatus || '').toLowerCase();
+      const reviewKey = normalizedReviewKey;
       if (isHotel && hotelVoucherStepMappings[reviewKey]) {
         return `${voucherRoute}${hotelVoucherStepMappings[reviewKey]}/${productId}`;
       }
@@ -228,7 +254,24 @@ const resolveEditRoute = ({
   }
 
   // Handle Product listing type
-  const categoryRoute = categoryRoutes[companyType];
+  // In Admin view, `companyType` is often "Admin", so prefer the actual saved product category.
+  const normalizeKeyForCategoryCompare = (key) => {
+    if (!key) return '';
+    return String(key).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  };
+
+  // Some draft/listing items may not have `ProductCategoryName` populated consistently.
+  // Fall back to other fields used elsewhere in the page (ProductType / Type).
+  const categoryCandidate = productCategory || product?.ProductType || product?.Type;
+
+  const categoryRouteFromExactMatch =
+    categoryRoutes[categoryCandidate] || categoryRoutes[productCategory] || categoryRoutes[companyType];
+  const normalizedProductCategory = normalizeKeyForCategoryCompare(categoryCandidate);
+  const categoryRouteFromFuzzyMatch = !categoryRouteFromExactMatch && normalizedProductCategory
+    ? Object.keys(categoryRoutes).find((k) => normalizeKeyForCategoryCompare(k) === normalizedProductCategory)
+    : null;
+
+  const categoryRoute = categoryRouteFromExactMatch || (categoryRouteFromFuzzyMatch ? categoryRoutes[categoryRouteFromFuzzyMatch] : null);
   if (categoryRoute) {
     return `${categoryRoute}${step}/${productId}`;
   }
