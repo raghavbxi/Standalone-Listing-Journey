@@ -169,6 +169,8 @@ const resolveViewRoute = ({ product, companyType, listingType, productCategory, 
 
 /**
  * Resolve Edit route
+ * For drafts, step is taken from ProductUploadStatus when reviewReasonNavigation is missing
+ * so the user returns to the page where they left off.
  */
 const resolveEditRoute = ({ 
   product, 
@@ -208,18 +210,22 @@ const resolveEditRoute = ({
     const reviewKey = normalizedReviewKey || 'productinformation';
     if (productCategory === 'Multiplex ADs') {
       if (productSubCategory === 'Digital ADs') {
-        const digitalSteps = { productinformation: 'mediaonlinedigitalscreensinfo', technicalinformation: 'mediaonlinedigitalscreenstechinfo', golive: 'digitalscreensgolive' };
+        const digitalSteps = { generalinformation: 'general-info', productinformation: 'mediaonlinedigitalscreensinfo', technicalinformation: 'mediaonlinedigitalscreenstechinfo', golive: 'digitalscreensgolive' };
         const digitalStep = digitalSteps[reviewKey] || 'mediaonlinedigitalscreensinfo';
         return `/mediaonline/${digitalStep}/${productId}`;
       }
-      const multiplexSteps = { productinformation: 'mediaonlinemultiplexproductinfo', technicalinformation: 'mediamultiplextechinfo', golive: 'go-live' };
+      const multiplexSteps = { generalinformation: 'general-info', productinformation: 'mediaonlinemultiplexproductinfo', technicalinformation: 'mediamultiplextechinfo', golive: 'go-live' };
       const multiplexStep = multiplexSteps[reviewKey] || 'mediaonlinemultiplexproductinfo';
       return `/mediaonline/${multiplexStep}/${productId}`;
     }
     if (productCategory === 'Hoardings' || productSubCategory === 'Hoardings') {
-      const hoardingSteps = { productinformation: 'mediaofflinehoardinginfo', technicalinformation: 'mediaofflinehoardingtechinfo', golive: 'hoardingsgolive' };
+      const hoardingSteps = { generalinformation: 'general-info', productinformation: 'mediaofflinehoardinginfo', technicalinformation: 'mediaofflinehoardingtechinfo', golive: 'hoardingsgolive' };
       const hoardingStep = hoardingSteps[reviewKey] || 'mediaofflinehoardinginfo';
       return `/mediaoffline/${hoardingStep}/${productId}`;
+    }
+    // Default media offline (e.g. News Paper & Magazine): general-info or product-info
+    if (reviewKey === 'generalinformation') {
+      return `/mediaoffline/general-info/${productId}`;
     }
     return `/mediaoffline/product-info/${productId}`;
   }
