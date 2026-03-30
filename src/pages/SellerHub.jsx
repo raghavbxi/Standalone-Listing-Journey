@@ -67,7 +67,6 @@ export default function SellerHub() {
     loading: authLoading,
     isAuthenticated,
   } = useAuthUser();
-  console.log("isAdmin", isAdmin);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -91,8 +90,7 @@ export default function SellerHub() {
   const companyType = companyTypeName || 'Others';
   const isMedia = companyType === 'Media';
   // Treat either a true admin flag or an explicit admin source as admin view
-  const showAdminView = isAdmin || source === 'admin';
-  console.log("showAdminView", showAdminView);
+  const showAdminView = isAdmin;
   const allowedCategories = getAllowedCategories(companyType, showAdminView);
   const allowedVouchers = getAllowedVouchers(companyType, showAdminView);
   const hasProductAccess = allowedCategories.length > 0;
